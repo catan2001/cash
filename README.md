@@ -2,4 +2,7 @@
 simple shell implementation for Linux
 
 ## Meaning
-cash means Catic Shell :[
+**cash** means Catic Shell :[
+
+### might need:
+**levenshtein distance**
