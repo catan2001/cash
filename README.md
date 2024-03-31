@@ -5,4 +5,4 @@ simple shell implementation for Linux
 **cash** means Catic Shell :[
 
 ### might need:
-**levenshtein distance**
+**levenshtein distance** but you have to implement cache system to make it faster
