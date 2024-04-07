@@ -6,7 +6,7 @@ all: cash.o
 cash.o: cash.c
 	gcc -c cash.c
 .PHONY: clean
-clean: cash.o cash
+clean:
 	rm cash.o
 	rm cash
 .PHONY: run
