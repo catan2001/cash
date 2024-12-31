@@ -134,7 +134,6 @@ token_t *classify_tokens(char **token)
         {
             ctoken[i].type = COMMAND;
             ctoken[i].value = "clear";  
-            clrs();
         }
         else
         {
@@ -149,6 +148,23 @@ token_t *classify_tokens(char **token)
 }
 
 // TODO: parse the tokens into a tree...
+
+/* EXAMPLE: cmd1 | cmd2 > file
+
+         |
+       /   \
+   cmd1     >
+          /   \
+       cmd2   file
+
+    RULE: execute always first left branch
+*/
+
+/* for(int i = 0; ctox != NULL; ++i) {
+
+}
+
+*/
 
 // TODO: ./execution does not work
 void exec(char *cmd)
