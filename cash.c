@@ -76,7 +76,7 @@ int compare_token(char *token, char *value)
     return EXIT_SUCCESS;
 }
 
-char **tokenizer(char *cmd)
+char **tokenizer(char *cmd) // lexical analysis
 {
     if (cmd[0] == 0 || cmd[0] == '\n')
         return NULL;
@@ -119,7 +119,7 @@ char **tokenizer(char *cmd)
     return tokens;
 }
 
-token_t *classify_tokens(char **token)
+token_t *classify_tokens(char **token) // part of parser
 {
     token_t *ctoken = (token_t *)malloc(sizeof(token_t));
     for (int i = 0; token[i] != NULL; i++)
@@ -146,25 +146,6 @@ token_t *classify_tokens(char **token)
     }
     return ctoken;
 }
-
-// TODO: parse the tokens into a tree...
-
-/* EXAMPLE: cmd1 | cmd2 > file
-
-         |
-       /   \
-   cmd1     >
-          /   \
-       cmd2   file
-
-    RULE: execute always first left branch
-*/
-
-/* for(int i = 0; ctox != NULL; ++i) {
-
-}
-
-*/
 
 // TODO: ./execution does not work
 void exec(char *cmd)
@@ -197,13 +178,3 @@ int main(void)
     }
     return 0;
 }
-
-// TODO:
-// 1) Execute in cash! ... done
-// 2) mkdir ...
-// 3) go thru file system ...
-// 4) parse commands from stdin ...
-// 5) cash> prompt sign ... done
-// 6) while until exits ... done
-// 7) implement clrs for clear screen ... done
-// 8) execute file but stay in cash! ...
