@@ -25,6 +25,13 @@ EXAMPLE: cmd1 | cmd2 > file
 
 ## TODO List
 
+#### 19.1.2025.
+- [] HASH map?
+- [] clean heap allocation
+- [] implement string "..."
+- [] implement comment #
+- [] implement numbers
+
 ### Steps
 
 - [x] scanning the code from stdin
@@ -120,4 +127,8 @@ funct returnFunction() {
 
 ### **About Interpreters:**
 - [Crafting Interpreters - Robert Nystorm](https://craftinginterpreters.com/contents.html)
+
+## Ideas:
+
+- [] Shift ASCII characters, example: a >> 1 == b... 
 

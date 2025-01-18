@@ -10,26 +10,87 @@
 #define ERROR -1
 
 #define MAX_SIZE 100
-enum TOKEN_TYPE
+
+enum TokenType // TODO: add the rest...
 {
-    COMMAND,
-    ARGUMENT,
-    OPERATOR,
-    CTRL_FLOW,
-    COMMENT
+    // One-word token
+    LEFT_PARENTHESIS,  // done
+    RIGHT_PARENTHESIS, // done
+    LEFT_BRACE,        // done
+    RIGHT_BRACE,       // done
+    DOT,               // done
+    COMMA,             // done
+    SEMICOLON,         // done
+    COMMENT,           // done but unnecessary
+
+    // Arithmetic operators:
+    ADD,      // done
+    SUBTRACT, // done
+    MULTIPLY, // done
+    DIVIDE,   // done
+    MODULUS,  // done
+
+    // Relational and assignment operators:
+    EXCLAMATION,                          // done
+    EXCLAMATION_EQUEAL,                   // done
+    EQUAL,                                // done
+    DOUBLE_EQUAL,                         // done
+    REDIRECTION_RIGHT_GREATER_RELATIONAL, // done
+    GREATER_EQUAL,                        // done
+    REDIRECTION_LEFT_LESS_RELATIONAL,     // done
+    LESS_EQUAL,                           // done
+
+    // Bitwise operators:
+    AND,             // done
+    PIPE_OR_BITWISE, // done
+    XOR,             // done
+                     // NOT is EXCLAMATION; see previous
+    SHIFT_LEFT,      // done
+    SHIFT_RIGHT,     // done
+
+    // Literals:
+    IDENTIFIER,
+    STRING,
+    NUMBER,
+
+    // Commands:
+    EXEC,  // done
+    PWD,   // done
+    CLEAR, // done
+    TIME,
+
+    // Keywords:
+    IF,          // done
+    ELSE,        // done
+    FALSE_TOKEN, // done
+    TRUE_TOKEN,  // done
+    FOR,         // done
+    WHILE,       // done
+    NULL_TOKEN,  // done
+    ENUM_TOKEN,  // done
+    VAR,         // done
+    PRINTF,      // done
+    FUNCT,       // done
+    EOF_TOKEN    // done
 };
 
-enum TOKEN_VALUE
+/*Type Union: Abstract the type for interpreter*/
+typedef union value_u
 {
-    PWD,
-    CLEAR
-};
+    int integer_value;   // 32
+    float float_value;   // 32
+    double double_value; // 64
+    char *char_value;    // 64
+} Value;
 
+/*Type Structure: Used for tokenization*/
 typedef struct token_s
 {
-    enum TOKEN_TYPE type;
-    char *value;
-} token_t;
+    enum TokenType type;
+    char *lexeme;
+    Value literal;
+    // int line_number; // Add this after implementing error correction
+} Token;
 
 char pcmd[MAX_SIZE];
 
@@ -59,6 +120,19 @@ int print_term(char *msg)
     return EXIT_FAILURE;
 }
 
+int error(char *msg)
+{
+    if (isatty(fileno(stdin)))
+    {
+        fprintf(stderr, msg);
+        return EXIT_SUCCESS;
+    }
+
+    fprintf(stderr, "Could not output to terminal, file descriptor %d", fileno(stdin));
+    return EXIT_FAILURE;
+}
+
+// TODO: implement ErrorReporter
 void clrs(void)
 {
     system("clear");
@@ -76,6 +150,7 @@ int compare_token(char *token, char *value)
     return EXIT_SUCCESS;
 }
 
+// TODO: 19.1.2025. Implement "" and #
 char **tokenizer(char *cmd) // lexical analysis
 {
     if (cmd[0] == 0 || cmd[0] == '\n')
@@ -93,7 +168,8 @@ char **tokenizer(char *cmd) // lexical analysis
     char *token = cmd;
     for (int i = 0; cmd[i] != '\0'; ++i)
     {
-        if (cmd[i] != ' ' && cmd[i] != '\n')
+        //if(cmd[i] == '#') break; // Implement when Comment...
+        if (cmd[i] != ' ' && cmd[i] != '\t' && cmd[i] != '\r' && cmd[i] != '\n') 
             continue;
         cmd[i] = '\0'; // replace white space with null terminator
 
@@ -113,35 +189,136 @@ char **tokenizer(char *cmd) // lexical analysis
         }
         tokens[word_cnt++] = strdup(token); // Copy token into the array
 
-        while (cmd[++i] == ' '); // skip spaces
+        while (cmd[++i] == ' ')
+            ;            // skip spaces
         token = &cmd[i]; // fetch next token
     }
     return tokens;
 }
 
-token_t *classify_tokens(char **token) // part of parser
+Token *classify_tokens(char **token) // part of parser
 {
-    token_t *ctoken = (token_t *)malloc(sizeof(token_t));
+    if (!token)
+        return NULL;
+    Token *ctoken = (Token *)malloc(sizeof(Token));
     for (int i = 0; token[i] != NULL; i++)
     {
-        ctoken = (token_t *)realloc(ctoken, sizeof(token_t) * (i + 1) * 2);
-        if (!compare_token(token[i], "pwd"))
+        ctoken = (Token *)realloc(ctoken, sizeof(Token) * (i + 1) * 2);
+        ctoken[i].lexeme = strdup(token[i]);
+        ctoken[i].literal.char_value = ctoken[i].lexeme;
+        if (strlen(token[i]) == 1)
         {
-            ctoken[i].type = COMMAND;
-            ctoken[i].value = "pwd";
-        } else
-        if (!compare_token(token[i], "clear") || !compare_token(token[i], "clrs"))
-        {
-            ctoken[i].type = COMMAND;
-            ctoken[i].value = "clear";  
+            switch (token[i][0])
+            {
+            case '(':
+                ctoken[i].type = LEFT_PARENTHESIS;
+                break;
+            case ')':
+                ctoken[i].type = RIGHT_PARENTHESIS;
+                break;
+            case '{':
+                ctoken[i].type = LEFT_BRACE;
+                break;
+            case '}':
+                ctoken[i].type = RIGHT_BRACE;
+                break;
+            case '.':
+                ctoken[i].type = DOT;
+                break;
+            case ';':
+                ctoken[i].type = SEMICOLON;
+                break;
+            case '#':
+                ctoken[i].type = COMMENT;
+                break;
+            case '|':
+                ctoken[i].type = PIPE_OR_BITWISE;
+                break;
+            case '&':
+                ctoken[i].type = AND;
+                break;
+            case '~':
+                ctoken[i].type = XOR;
+                break;
+            case '<':
+                ctoken[i].type = REDIRECTION_LEFT_LESS_RELATIONAL;
+                break;
+            case '>':
+                ctoken[i].type = REDIRECTION_RIGHT_GREATER_RELATIONAL;
+                break;
+            case '+':
+                ctoken[i].type = ADD;
+                break;
+            case '-':
+                ctoken[i].type = SUBTRACT;
+                break;
+            case '*':
+                ctoken[i].type = MULTIPLY;
+                break;
+            case '/':
+                ctoken[i].type = DIVIDE;
+                break;
+            case '%':
+                ctoken[i].type = MODULUS;
+                break;
+            case '!':
+                ctoken[i].type = EXCLAMATION;
+                break;
+            case '=':
+                ctoken[i].type = EQUAL;
+                break;
+            default:
+                ctoken[i].type = IDENTIFIER;
+                break;
+            }
         }
+        else if (!compare_token(token[i], "!="))
+            ctoken[i].type = EXCLAMATION_EQUEAL;
+        else if (!compare_token(token[i], "=="))
+            ctoken[i].type = DOUBLE_EQUAL;
+        else if (!compare_token(token[i], ">="))
+            ctoken[i].type = GREATER_EQUAL;
+        else if (!compare_token(token[i], "<="))
+            ctoken[i].type = LESS_EQUAL;
+        else if (!compare_token(token[i], "<<"))
+            ctoken[i].type = SHIFT_LEFT;
+        else if (!compare_token(token[i], ">>"))
+            ctoken[i].type = SHIFT_RIGHT;
+        else if (!compare_token(token[i], "pwd"))
+            ctoken[i].type = PWD;
+        else if (!compare_token(token[i], "exec"))
+            ctoken[i].type = EXEC;
+        else if (!compare_token(token[i], "clear") || !compare_token(token[i], "clrs"))
+            ctoken[i].type = CLEAR;
+        else if (!compare_token(token[i], "if"))
+            ctoken[i].type = IF;
+        else if (!compare_token(token[i], "else"))
+            ctoken[i].type = ELSE;
+        else if (!compare_token(token[i], "false"))
+            ctoken[i].type = FALSE;
+        else if (!compare_token(token[i], "true"))
+            ctoken[i].type = TRUE;
+        else if (!compare_token(token[i], "for"))
+            ctoken[i].type = FOR;
+        else if (!compare_token(token[i], "while"))
+            ctoken[i].type = WHILE;
+        else if (!compare_token(token[i], "null"))
+            ctoken[i].type = NULL_TOKEN;
+        else if (!compare_token(token[i], "enum"))
+            ctoken[i].type = ENUM_TOKEN;
+        else if (!compare_token(token[i], "var"))
+            ctoken[i].type = VAR;
+        else if (!compare_token(token[i], "printf"))
+            ctoken[i].type = PRINTF;
+        else if (!compare_token(token[i], "funct"))
+            ctoken[i].type = FUNCT;
+        else if (!compare_token(token[i], "eof"))
+            ctoken[i].type = EOF_TOKEN;
         else
-        {
-            ctoken[i].type = ARGUMENT;
-            ctoken[i].value = token[i];
-        }
+            ctoken[i].type = IDENTIFIER;
+
         printf("TOKEN: ");
-        print_term(ctoken[i].value);
+        print_term(ctoken[i].lexeme);
         print_term("\n");
     }
     return ctoken;
@@ -170,9 +347,9 @@ int main(void)
     {
         read_cmd(pcmd, sizeof(pcmd));
         char **tokens = tokenizer(pcmd);
-        token_t *ctox = classify_tokens(tokens);
+        Token *ctox = classify_tokens(tokens);
 
-        free(tokens); // add for loop to properly free  
+        free(tokens); // add for loop to properly free
         exec(pcmd);
         wait(NULL);
     }
