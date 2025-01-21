@@ -1,14 +1,26 @@
-#MakeFile for CASH!
+# Makefile for CASH!
 
-.PHONY: all
-all: cash.o
-	gcc cash.o -o cash
-cash.o: cash.c
-	gcc -c cash.c
-.PHONY: clean
+# Variables
+CC = gcc
+CFLAGS = -std=c11 -Wall
+DEBUG_FLAGS = -ggdb3
+TARGET = cash
+SRC = cash.c
+OBJ = cash.o
+
+.PHONY: all clean run debug memleak
+all: $(OBJ)
+	$(CC) $(OBJ) -o $(TARGET)
+cash.o: $(SRC)
+	$(CC) -c $(SRC)
+
 clean:
-	rm cash.o
-	rm cash
-.PHONY: run
-run: cash
-	./cash
+	rm $(OBJ)
+	rm $(TARGET)
+
+run: $(TARGET)
+	./$(TARGET)
+debug: $(SRC)
+	$(CC) -o $(TARGET) $(CFLAGS) $(DEBUG_FLAGS) $(SRC)
+run-memleak: $(TARGET)
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s ./$(TARGET)
