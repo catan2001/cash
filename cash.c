@@ -1,3 +1,27 @@
+/*
+MIT License
+
+Copyright (c) 2024 catan2001
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -75,16 +99,16 @@ enum TokenType // TODO: add the rest...
     EOF_TOKEN    // done
 };
 
-/*Type Union: Abstract the type for interpreter*/
+/*@Type Union: Abstract the type for interpreter*/
 typedef union value_u
 {
-    size_t integer_value;   // 32
-    float float_value;   // 32
-    double double_value; // 64
-    char *char_value;    // 64
+    size_t integer_value; // 32
+    float float_value;    // 32
+    double double_value;  // 64
+    char *char_value;     // 64
 } Value;
 
-/*Type Structure: Used for tokenization*/
+/*@Type Structure: Used for tokenization*/
 typedef struct token_s
 {
     enum TokenType type;
@@ -93,11 +117,12 @@ typedef struct token_s
     // int line_number; // Add this after implementing error correction
 } Token;
 
-char pcmd[MAX_SIZE];
+static char pcmd[MAX_SIZE];
 
 /*@sigint_handler
-**Function: Signal handler function for SIGINT*/ 
-void sigint_handler(int sig) {
+**Function: Signal handler function for SIGINT*/
+static void sigint_handler(int sig)
+{
     // Perform cleanup
     fclose(stdout);
     fclose(stdin);
@@ -107,7 +132,7 @@ void sigint_handler(int sig) {
 
 /*@read_cmd
 **Function: Prints prompt and reads input from stdin*/
-void read_cmd(char *pcmd, int lcmd)
+static void read_cmd(char *pcmd, int lcmd)
 {
     if (isatty(fileno(stdin)))
         fprintf(stdout, "cash> ");
@@ -115,11 +140,12 @@ void read_cmd(char *pcmd, int lcmd)
         return;
     memset(pcmd, 0, lcmd);
     fgets(pcmd, lcmd, stdin);
+    return;
 }
 
 /*@print_term
 **Function: Prints output to prompt*/
-int print_term(char *msg)
+static int print_term(char *msg)
 {
     if (isatty(fileno(stdin)))
     {
@@ -131,7 +157,10 @@ int print_term(char *msg)
     return EXIT_FAILURE;
 }
 
-int error(char *msg)
+// TODO: implement ErrorReporter
+/*@error
+**Function: Prints error to prompt*/
+static int error(char *msg)
 {
     if (isatty(fileno(stdin)))
     {
@@ -143,13 +172,17 @@ int error(char *msg)
     return EXIT_FAILURE;
 }
 
-// TODO: implement ErrorReporter
-void clrs(void)
+/*@clear_terminal
+**Function: Clears the terminal*/
+static void clear_terminal(void)
 {
     system("clear");
+    return;
 }
 
-int compare_token(char *token, char *value)
+/*@compare_token
+**Function: Compares token with value.*/
+static int compare_token(char *token, char *value)
 {
     if (strlen(token) != strlen(value))
         return EXIT_FAILURE;
@@ -161,12 +194,16 @@ int compare_token(char *token, char *value)
     return EXIT_SUCCESS;
 }
 
-char **tokenizer(char *cmd, size_t *number_of_tokens) // lexical analysis
+/*Lexical analysis section of code*/
+
+/*@tokenizer
+**Function: Separates line into individual tokens.*/
+static char **tokenizer(char *cmd, size_t *number_of_tokens)
 {
-    if (cmd == NULL || cmd[0] == 0 || cmd[0] == '\n')
+    if (cmd == NULL || !cmd[0] || cmd[0] == '\n')
         return NULL;
 
-    size_t token_cnt = 0; //
+    size_t token_cnt = 0;
     char *token = cmd;
     char **tokens = (char **)malloc(sizeof(char *));
     if (tokens == NULL)
@@ -175,18 +212,42 @@ char **tokenizer(char *cmd, size_t *number_of_tokens) // lexical analysis
         exit(EXIT_FAILURE);
     }
 
-    for (size_t i = 0; cmd[i] != '\0'; ++i)
+    for (size_t i = 0; cmd[i]; ++i)
     {
-        // if(cmd[i] == '#') break; // Implement when Comment...
-        if (cmd[i] != ' ' && cmd[i] != '\t' && cmd[i] != '\r' && cmd[i] != '\n')
-            continue;
+        printf("cmd[i]: %c\n", cmd[i]);
+        switch (cmd[i])
+        {
+        case ' ':  
+        case '\t':  
+        case '\r':  
+        case '\n':  
+            cmd[i] = '\0';
+            break;
+        case '#':   
+            return tokens;        
+        // TODO: Add comment block
+        default:
+            switch (cmd[i]){
+                case '!': break; // !=
+                case '(': break;
+                case ')': break;
+                case '{': break;
+                case '}': break;
+                case '<': break; // <=, <<
+                case '>': break; // >=, >>
+                case '*': break;  
+                case '+': break; 
+                case '-': break; 
+                case '%': break; 
+                case '/': break;
+                default: continue; 
+            }
+        }
 
         // Replace white space with null terminator
-        cmd[i] = '\0'; 
-
         char **new_tokens = realloc(tokens, (token_cnt + 1) * sizeof(char *));
         // Deallocate memory if realloc fails
-        if (!new_tokens) 
+        if (!new_tokens)
         {
             fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
             for (size_t j = 0; j < token_cnt; ++j)
@@ -197,18 +258,19 @@ char **tokenizer(char *cmd, size_t *number_of_tokens) // lexical analysis
         tokens = new_tokens;
 
         // Copy token into the array
-        tokens[token_cnt++] = strdup(token); 
+        tokens[token_cnt++] = strdup(token);
 
         // Skip unnecessary spaces
-        while (cmd[++i] == ' ');  
-        // Fetch next token          
-        token = &cmd[i]; 
+        while (cmd[i + 1] == ' ')
+            ++i;
+        // Fetch next token
+        token = &cmd[i + 1];
+        *number_of_tokens = token_cnt;
     }
-    *number_of_tokens = token_cnt;
     return tokens;
 }
 
-Token *token_classifier(char **token, size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
+static Token *token_classifier(char **token, size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
 {
     size_t number_of_ctox = 0;
 
@@ -332,7 +394,7 @@ Token *token_classifier(char **token, size_t number_of_tokens, size_t *number_of
             ctoken[i].type = PWD;
         else if (!compare_token(token[i], "exec"))
             ctoken[i].type = EXEC;
-        else if (!compare_token(token[i], "clear") || !compare_token(token[i], "clrs"))
+        else if (!compare_token(token[i], "clear") || !compare_token(token[i], "clear_terminal"))
             ctoken[i].type = CLEAR;
         else if (!compare_token(token[i], "if"))
             ctoken[i].type = IF;
@@ -370,7 +432,7 @@ Token *token_classifier(char **token, size_t number_of_tokens, size_t *number_of
 }
 
 // TODO: ./execution does not work
-void exec(char *cmd)
+static void exec(char *cmd)
 {
     int len;
     if (cmd[0] == '.' && cmd[1] == '.')
@@ -388,10 +450,10 @@ int main(void)
 {
     // Set up the signal handler for SIGINT to close
     // stdin and stdout streams
-    signal(SIGINT, sigint_handler);    
+    signal(SIGINT, sigint_handler);
 
     // Clear the terminal at start
-    clrs();
+    clear_terminal();
 
     while (TRUE)
     {
