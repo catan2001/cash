@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <assert.h>
+#include <signal.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -77,7 +78,7 @@ enum TokenType // TODO: add the rest...
 /*Type Union: Abstract the type for interpreter*/
 typedef union value_u
 {
-    int integer_value;   // 32
+    size_t integer_value;   // 32
     float float_value;   // 32
     double double_value; // 64
     char *char_value;    // 64
@@ -94,6 +95,16 @@ typedef struct token_s
 
 char pcmd[MAX_SIZE];
 
+/*@sigint_handler
+**Function: Signal handler function for SIGINT*/ 
+void sigint_handler(int sig) {
+    // Perform cleanup
+    fclose(stdout);
+    fclose(stdin);
+    fprintf(stderr, "\nCaught SIGINT, cleaning up and exiting...\n");
+    exit(EXIT_SUCCESS);
+}
+
 /*@read_cmd
 **Function: Prints prompt and reads input from stdin*/
 void read_cmd(char *pcmd, int lcmd)
@@ -102,7 +113,7 @@ void read_cmd(char *pcmd, int lcmd)
         fprintf(stdout, "cash> ");
     else
         return;
-    memset(pcmd, 0, lcmd); // necessary?
+    memset(pcmd, 0, lcmd);
     fgets(pcmd, lcmd, stdin);
 }
 
@@ -142,7 +153,7 @@ int compare_token(char *token, char *value)
 {
     if (strlen(token) != strlen(value))
         return EXIT_FAILURE;
-    for (int i = 0; token[i] != 0; ++i)
+    for (size_t i = 0; token[i] != 0; ++i)
     {
         if (token[i] != value[i])
             return EXIT_FAILURE;
@@ -150,61 +161,94 @@ int compare_token(char *token, char *value)
     return EXIT_SUCCESS;
 }
 
-// TODO: 19.1.2025. Implement "" and #
-char **tokenizer(char *cmd) // lexical analysis
+char **tokenizer(char *cmd, size_t *number_of_tokens) // lexical analysis
 {
-    if (cmd[0] == 0 || cmd[0] == '\n')
+    if (cmd == NULL || cmd[0] == 0 || cmd[0] == '\n')
         return NULL;
 
-    int word_cnt = 0;
-    int capacity = 2;
-    char **tokens = (char **)malloc(capacity * sizeof(char *));
+    size_t token_cnt = 0; //
+    char *token = cmd;
+    char **tokens = (char **)malloc(sizeof(char *));
     if (tokens == NULL)
     {
         fprintf(stderr, "ERROR: tokenizer [could not allocate memory]\n");
         exit(EXIT_FAILURE);
     }
 
-    char *token = cmd;
-    for (int i = 0; cmd[i] != '\0'; ++i)
+    for (size_t i = 0; cmd[i] != '\0'; ++i)
     {
-        //if(cmd[i] == '#') break; // Implement when Comment...
-        if (cmd[i] != ' ' && cmd[i] != '\t' && cmd[i] != '\r' && cmd[i] != '\n') 
+        // if(cmd[i] == '#') break; // Implement when Comment...
+        if (cmd[i] != ' ' && cmd[i] != '\t' && cmd[i] != '\r' && cmd[i] != '\n')
             continue;
-        cmd[i] = '\0'; // replace white space with null terminator
 
-        if (word_cnt >= capacity) // reallocate larger memory...
+        // Replace white space with null terminator
+        cmd[i] = '\0'; 
+
+        char **new_tokens = realloc(tokens, (token_cnt + 1) * sizeof(char *));
+        // Deallocate memory if realloc fails
+        if (!new_tokens) 
         {
-            capacity *= 2;
-            char **new_tokens = realloc(tokens, capacity * sizeof(char *));
-            if (!new_tokens) // deallocate if fail
-            {
-                fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
-                for (int j = 0; j < word_cnt; ++j)
-                    free(tokens[j]);
-                free(tokens);
-                exit(EXIT_FAILURE);
-            }
-            tokens = new_tokens;
+            fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
+            for (size_t j = 0; j < token_cnt; ++j)
+                free(tokens[j]);
+            free(tokens);
+            exit(EXIT_FAILURE);
         }
-        tokens[word_cnt++] = strdup(token); // Copy token into the array
+        tokens = new_tokens;
 
-        while (cmd[++i] == ' ')
-            ;            // skip spaces
-        token = &cmd[i]; // fetch next token
+        // Copy token into the array
+        tokens[token_cnt++] = strdup(token); 
+
+        // Skip unnecessary spaces
+        while (cmd[++i] == ' ');  
+        // Fetch next token          
+        token = &cmd[i]; 
     }
+    *number_of_tokens = token_cnt;
     return tokens;
 }
 
-Token *classify_tokens(char **token) // part of parser
+Token *token_classifier(char **token, size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
 {
+    size_t number_of_ctox = 0;
+
     if (!token)
         return NULL;
+
     Token *ctoken = (Token *)malloc(sizeof(Token));
-    for (int i = 0; token[i] != NULL; i++)
+    if (ctoken == NULL)
     {
-        ctoken = (Token *)realloc(ctoken, sizeof(Token) * (i + 1) * 2);
+        fprintf(stderr, "Failed to allocate memory for ctoken!");
+        free(ctoken);
+    }
+
+    for (size_t i = 0; i < number_of_tokens; ++i)
+    {
+        number_of_ctox++;
+        ctoken = (Token *)realloc(ctoken, sizeof(Token) * number_of_ctox);
+        // Free all allocated memory before exiting
+        if (!ctoken)
+        {
+            fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
+            for (size_t j = 0; j < number_of_ctox - 1; ++j)
+                free(ctoken[j].lexeme);
+            free(ctoken);
+            exit(EXIT_FAILURE);
+        }
+
         ctoken[i].lexeme = strdup(token[i]);
+
+        if (!ctoken[i].lexeme)
+        {
+            perror("Failed to duplicate string");
+            // Free all allocated memory before exiting
+            for (size_t j = 0; j < (i + 1); j++)
+            {
+                free(ctoken[j].lexeme);
+            }
+            free(ctoken);
+            return NULL;
+        }
         ctoken[i].literal.char_value = ctoken[i].lexeme;
         if (strlen(token[i]) == 1)
         {
@@ -321,6 +365,7 @@ Token *classify_tokens(char **token) // part of parser
         print_term(ctoken[i].lexeme);
         print_term("\n");
     }
+    *number_of_ctokens = number_of_ctox;
     return ctoken;
 }
 
@@ -341,16 +386,34 @@ void exec(char *cmd)
 
 int main(void)
 {
+    // Set up the signal handler for SIGINT to close
+    // stdin and stdout streams
+    signal(SIGINT, sigint_handler);    
+
+    // Clear the terminal at start
     clrs();
 
     while (TRUE)
     {
-        read_cmd(pcmd, sizeof(pcmd));
-        char **tokens = tokenizer(pcmd);
-        Token *ctox = classify_tokens(tokens);
+        char **tokens;
+        size_t number_of_tokens;
+        size_t number_of_ctokens;
 
-        free(tokens); // add for loop to properly free
-        exec(pcmd);
+        read_cmd(pcmd, MAX_SIZE);
+        tokens = tokenizer(pcmd, &number_of_tokens);
+        if (tokens != NULL)
+        {
+            Token *ctox = token_classifier(tokens, number_of_tokens, &number_of_ctokens);
+            // exec(pcmd);
+            // Deallocate Heap memory
+            for (size_t i = 0; i < number_of_tokens; ++i)
+                free(tokens[i]);
+            for (size_t i = 0; i < number_of_ctokens; ++i)
+                free(ctox[i].lexeme);
+            free(tokens);
+            free(ctox);
+        }
+
         wait(NULL);
     }
     return 0;

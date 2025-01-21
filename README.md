@@ -25,9 +25,15 @@ EXAMPLE: cmd1 | cmd2 > file
 
 ## TODO List
 
-#### 19.1.2025.
+#### 20.1.2025.
+
+- [x] clean heap allocation
+  - [x] added SIGINT to clean heap
+- [x] cleaned code
+- [x] updated Makefile  
+
+#### 21.2.2025.
 - [] HASH map?
-- [] clean heap allocation
 - [] implement string "..."
 - [] implement comment #
 - [] implement numbers
