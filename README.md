@@ -33,11 +33,15 @@ EXAMPLE: cmd1 | cmd2 > file
 - [x] updated Makefile  
 
 #### 21.2.2025.
-- [] HASH map?
-- [] implement string "..."
-- [] implement comment #
-- [] implement numbers
+- [x] Fixing tokenization of special characters [WIP]
+- [x] Styled code
+- [x] implement comment #
 
+#### 22.2.2025.
+- [] Fix tokenizer
+- [] HASH map
+- [] implement numbers
+- [] implement string "..."
 ### Steps
 
 - [x] scanning the code from stdin
@@ -126,13 +130,15 @@ funct returnFunction() {
 
 ### **Lexical Analysis:**
 - [Lexical Analysis - Wikipedia](https://en.wikipedia.org/wiki/Lexical_analysis)
-
+- [PackCC: a parser generator for C - Github](https://github.com/arithy/packcc/blob/master/src/packcc.c)
 ### **Abstract Syntax Tree (ASTs):**
 - [Introduction to Binary Tree - GFG](https://www.geeksforgeeks.org/introduction-to-binary-tree/)
 - [Abstract Syntax Tree - Wikipedia](https://en.wikipedia.org/wiki/Abstract_syntax_tree)
 
 ### **About Interpreters:**
 - [Crafting Interpreters - Robert Nystorm](https://craftinginterpreters.com/contents.html)
+
+
 
 ## Ideas:
 
