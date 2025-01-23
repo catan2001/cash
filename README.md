@@ -23,7 +23,7 @@ EXAMPLE: cmd1 | cmd2 > file
 **Explanation**: A lexical analysis tool can theoretically utilize various data structures. For instance, Bash employs a combination of parse trees, hash tables, linked lists, stacks, and dynamic arrays. Once classification is complete, it should be clear how to implement a parse tree in Cash. The difficulty of implementation depends on the computational resources available in Cash. Introducing brackets, () or [] makes huge difference in how parsing is done.
 
 
-## TODO List
+## Update and TODO List
 
 #### 20.1.2025.
 
@@ -37,11 +37,16 @@ EXAMPLE: cmd1 | cmd2 > file
 - [x] Styled code
 - [x] implement comment #
 
-#### 22.2.2025.
-- [] Fix tokenizer
+#### 23.2.2025.
+- [x] Fixed tokenizer to properly tokenize special characters
+- [x] Added helper functions type_of_character and add_token
+- [x] Cleaned up the code
+
+#### 24.2.2025.
 - [] HASH map
 - [] implement numbers
 - [] implement string "..."
+
 ### Steps
 
 - [x] scanning the code from stdin
