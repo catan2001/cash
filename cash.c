@@ -34,7 +34,8 @@ SOFTWARE.
 #define FALSE 0
 #define ERROR -1
 
-#define MAX_SIZE 100
+// Maximum size of the input line
+#define MAX_SIZE 1000
 
 enum TokenType // TODO: add the rest...
 {
@@ -98,6 +99,8 @@ enum TokenType // TODO: add the rest...
     FUNCT,       // done
     EOF_TOKEN    // done
 };
+
+typedef enum CharacterType {SPECIAL, SPACE, NEW_LINE, OTHER} character_t;
 
 /*@Type Union: Abstract the type for interpreter*/
 typedef union value_u
@@ -196,79 +199,118 @@ static int compare_token(char *token, char *value)
 
 /*Lexical analysis section of code*/
 
+/*@add_token
+**Helper Function: Adds a token to the array*/
+static char **add_token(char **tokens, size_t *token_cnt, char *token)
+{
+    char **new_tokens = realloc(tokens, (*token_cnt + 1) * sizeof(char *));
+    // Deallocate memory if realloc fails
+    if (!new_tokens)
+    {
+        fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
+        for (size_t j = 0; j < *token_cnt; ++j)
+            free(tokens[j]);
+        free(tokens);
+        exit(EXIT_FAILURE);
+    }
+    tokens = new_tokens;
+
+    // Copy token into an array of tokens
+    tokens[*token_cnt] = strdup(token);
+    if (!tokens[*token_cnt])
+    {
+        fprintf(stderr, "ERROR: tokenizer [strdup failed]\n");
+        exit(EXIT_FAILURE);
+    }
+    // Increment token count
+    (*token_cnt)++;
+    return tokens;
+}
+
+/*@type_of_character
+**Helper Function: Determines type of character*/
+static character_t type_of_character(char c)
+{
+    switch (c)
+    {
+            case '#': 
+            case '(':
+            case ')':
+            case '{':
+            case '}':
+            case '*':
+            case '+':
+            case '-':
+            case '%':
+            case '/':
+            case '!': 
+            case '=':
+            case '<':   
+            case '>':   return SPECIAL;
+            case ' ':
+            case '\t':
+            case '\r':  return SPACE;
+            case '\n':  return NEW_LINE;
+            default:    return OTHER;
+    }
+}
+
 /*@tokenizer
-**Function: Separates line into individual tokens.*/
-static char **tokenizer(char *cmd, size_t *number_of_tokens)
+**Function: Separates line into individual null terminated tokens.*/
+static char **tokenizer(char *cmd, size_t *token_cnt)
 {
     if (cmd == NULL || !cmd[0] || cmd[0] == '\n')
         return NULL;
 
-    size_t token_cnt = 0;
-    char *token = cmd;
-    char **tokens = (char **)malloc(sizeof(char *));
-    if (tokens == NULL)
-    {
-        fprintf(stderr, "ERROR: tokenizer [could not allocate memory]\n");
-        exit(EXIT_FAILURE);
-    }
+    size_t head_position = 0; 
+    char **tokens = NULL; 
+
+    // Reinitialize token count back to zero
+    *token_cnt = 0;
 
     for (size_t i = 0; cmd[i]; ++i)
     {
-        printf("cmd[i]: %c\n", cmd[i]);
-        switch (cmd[i])
+        switch (type_of_character(cmd[i]))
         {
-        case ' ':  
-        case '\t':  
-        case '\r':  
-        case '\n':  
-            cmd[i] = '\0';
-            break;
-        case '#':   
-            return tokens;        
-        // TODO: Add comment block
-        default:
-            switch (cmd[i]){
-                case '!': break; // !=
-                case '(': break;
-                case ')': break;
-                case '{': break;
-                case '}': break;
-                case '<': break; // <=, <<
-                case '>': break; // >=, >>
-                case '*': break;  
-                case '+': break; 
-                case '-': break; 
-                case '%': break; 
-                case '/': break;
-                default: continue; 
-            }
+            case SPECIAL:
+                char special_token[3] = {cmd[i], '\0', '\0'};
+
+                /*Copy previous token into the array*/
+                if (head_position < i)
+                {
+                    cmd[i] = '\0'; // null terminate token
+                    tokens = add_token(tokens, token_cnt, &cmd[head_position]);
+                    // Position head onto new token
+                    head_position = i + 1;
+                }
+        
+                if(special_token[0] == '#') 
+                    return tokens; // TODO: Add comment block..
+
+                /*Copy special token into the array*/
+                if (cmd[i + 1] == '=' || cmd[i + 1] == '>' || cmd[i + 1] == '<')
+                    special_token[1] = cmd[i + 1];
+                
+                tokens = add_token(tokens, token_cnt, special_token);
+                break;
+            case SPACE:
+            case NEW_LINE:
+                // Copy token into the array
+                if(head_position < i)
+                {
+                    cmd[i] = '\0'; // null terminate token
+                    tokens = add_token(tokens, token_cnt, &cmd[head_position]);
+                }
+                break;
+            case OTHER:
+            default:    
+                continue;
         }
-
-        // Replace white space with null terminator
-        char **new_tokens = realloc(tokens, (token_cnt + 1) * sizeof(char *));
-        // Deallocate memory if realloc fails
-        if (!new_tokens)
-        {
-            fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
-            for (size_t j = 0; j < token_cnt; ++j)
-                free(tokens[j]);
-            free(tokens);
-            exit(EXIT_FAILURE);
-        }
-        tokens = new_tokens;
-
-        // Copy token into the array
-        tokens[token_cnt++] = strdup(token);
-
-        // Skip unnecessary spaces
-        while (cmd[i + 1] == ' ')
-            ++i;
-        // Fetch next token
-        token = &cmd[i + 1];
-        *number_of_tokens = token_cnt;
+        // Position head onto new token
+        head_position = i + 1;
     }
     return tokens;
-}
+} 
 
 static Token *token_classifier(char **token, size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
 {
@@ -428,6 +470,7 @@ static Token *token_classifier(char **token, size_t number_of_tokens, size_t *nu
         print_term("\n");
     }
     *number_of_ctokens = number_of_ctox;
+    printf("Finished\n");
     return ctoken;
 }
 
@@ -468,11 +511,12 @@ int main(void)
             Token *ctox = token_classifier(tokens, number_of_tokens, &number_of_ctokens);
             // exec(pcmd);
             // Deallocate Heap memory
-            for (size_t i = 0; i < number_of_tokens; ++i)
+            for (size_t i = 0; i < number_of_tokens; ++i) {
                 free(tokens[i]);
+            }
+            free(tokens);
             for (size_t i = 0; i < number_of_ctokens; ++i)
                 free(ctox[i].lexeme);
-            free(tokens);
             free(ctox);
         }
 
