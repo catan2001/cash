@@ -32,20 +32,23 @@ EXAMPLE: cmd1 | cmd2 > file
 - [x] cleaned code
 - [x] updated Makefile  
 
-#### 21.2.2025.
+#### 21.1.2025.
 - [x] Fixing tokenization of special characters [WIP]
 - [x] Styled code
 - [x] implement comment #
 
-#### 23.2.2025.
+#### 23.1.2025.
 - [x] Fixed tokenizer to properly tokenize special characters
 - [x] Added helper functions type_of_character and add_token
 - [x] Cleaned up the code
 
-#### 24.2.2025.
-- [] HASH map
-- [] implement numbers
-- [] implement string "..."
+#### 27.1.2025.
+- [x] Refactored code
+
+#### 28.1.2025.
+- [ ] HASH map
+- [ ] implement numbers
+- [ ] implement string "..."
 
 ### Steps
 
