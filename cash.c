@@ -39,40 +39,37 @@ SOFTWARE.
 
 enum TokenType // TODO: add the rest...
 {
-    // One-word token
-    LEFT_PARENTHESIS,  // done
-    RIGHT_PARENTHESIS, // done
-    LEFT_BRACE,        // done
-    RIGHT_BRACE,       // done
-    DOT,               // done
-    COMMA,             // done
-    SEMICOLON,         // done
-    COMMENT,           // done but unnecessary
+    FAILED_TO_CLASSIFY = 1,
+    
+    // Single character special token
+    EXCLAMATION = 33,                          // done 33 0
+    COMMENT = 35,                              // done 35 2
+    MODULUS = 37,                              // done 37 4
+    AND = 38,                                  // done 38 5
+    LEFT_PARENTHESIS = 40,                     // done 40 7
+    RIGHT_PARENTHESIS = 41,                    // done 41 8
+    MULTIPLY = 42,                             // done 42 9
+    ADD = 43,                                  // done 43 10
+    COMMA = 44,                                // done 44 11
+    SUBTRACT = 45,                             // done 45 12
+    DOT = 46,                                  // done 46 13
+    DIVIDE = 47,                               // done 47 14
+    SEMICOLON = 59,                            // done 59 26
+    REDIRECTION_LEFT_LESS_RELATIONAL = 60,     // done 60 27
+    EQUAL = 61,                                // done 61 28
+    REDIRECTION_RIGHT_GREATER_RELATIONAL = 62, // done 62 29
+    LEFT_BRACE = 123,                          // done 123 24
+    PIPE_OR_BITWISE = 124,                     // done 124 25
+    RIGHT_BRACE = 125,                         // done 125 26
+    XOR = 126,                                 // done 126 27
 
-    // Arithmetic operators:
-    ADD,      // done
-    SUBTRACT, // done
-    MULTIPLY, // done
-    DIVIDE,   // done
-    MODULUS,  // done
-
-    // Relational and assignment operators:
-    EXCLAMATION,                          // done
-    EXCLAMATION_EQUEAL,                   // done
-    EQUAL,                                // done
-    DOUBLE_EQUAL,                         // done
-    REDIRECTION_RIGHT_GREATER_RELATIONAL, // done
-    GREATER_EQUAL,                        // done
-    REDIRECTION_LEFT_LESS_RELATIONAL,     // done
-    LESS_EQUAL,                           // done
-
-    // Bitwise operators:
-    AND,             // done
-    PIPE_OR_BITWISE, // done
-    XOR,             // done
-                     // NOT is EXCLAMATION; see previous
-    SHIFT_LEFT,      // done
-    SHIFT_RIGHT,     // done
+    // Two character special token
+    EXCLAMATION_EQUEAL, // done
+    DOUBLE_EQUAL,       // done
+    GREATER_EQUAL,      // done
+    LESS_EQUAL,         // done
+    SHIFT_LEFT,         // done
+    SHIFT_RIGHT,        // done
 
     // Literals:
     IDENTIFIER,
@@ -124,7 +121,7 @@ static char pcmd[MAX_SIZE];
 
 /*@sigint_handler
 **Function: Signal handler function for SIGINT*/
-static void sigint_handler(int sig)
+static void sigint_handler(const int sig)
 {
     // Perform cleanup
     fclose(stdout);
@@ -135,7 +132,7 @@ static void sigint_handler(int sig)
 
 /*@read_cmd
 **Function: Prints prompt and reads input from stdin*/
-static void read_cmd(char *pcmd, int lcmd)
+static void read_cmd(char *pcmd, const int lcmd)
 {
     if (isatty(fileno(stdin)))
         fprintf(stdout, "cash> ");
@@ -233,6 +230,10 @@ static character_t type_of_character(char c)
 {
     switch (c)
     {
+            case '~':
+            case '|':
+            case ';':
+            case '&':
             case '#': 
             case '(':
             case ')':
@@ -255,6 +256,28 @@ static character_t type_of_character(char c)
     }
 }
 
+static int classify_special_token(const char *token)
+{
+    if (type_of_character(token[1]) == SPECIAL)
+    {
+        switch (token[0])
+        {
+        case '<':
+            return (token[1] == '=') ? LESS_EQUAL : REDIRECTION_LEFT_LESS_RELATIONAL;
+        case '>':
+            return (token[1] == '=') ? GREATER_EQUAL : REDIRECTION_RIGHT_GREATER_RELATIONAL;
+        case '!':
+            return EXCLAMATION_EQUEAL;
+        case '=':
+            return DOUBLE_EQUAL;
+        default:
+            fprintf(stderr, "error: syntax mistake at %s\n", token);
+            return FAILED_TO_CLASSIFY;
+        }
+    }
+    return (int)token[0];
+}
+
 /*@tokenizer
 **Function: Separates line into individual null terminated tokens.*/
 static char **tokenizer(char *cmd, size_t *token_cnt)
@@ -262,8 +285,8 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
     if (cmd == NULL || !cmd[0] || cmd[0] == '\n')
         return NULL;
 
-    size_t head_position = 0; 
-    char **tokens = NULL; 
+    size_t head_position = 0;
+    char **tokens = NULL;
 
     // Reinitialize token count back to zero
     *token_cnt = 0;
@@ -272,54 +295,58 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
     {
         switch (type_of_character(cmd[i]))
         {
-            case SPECIAL:
-                char special_token[3] = {cmd[i], '\0', '\0'};
+        case SPECIAL:
+            char special_token[3] = {cmd[i], '\0', '\0'};
 
-                /*Copy previous token into the array*/
-                if (head_position < i)
-                {
-                    cmd[i] = '\0'; // null terminate token
-                    tokens = add_token(tokens, token_cnt, &cmd[head_position]);
-                    // Position head onto new token
-                    head_position = i + 1;
-                }
-        
-                if(special_token[0] == '#') 
-                    return tokens; // TODO: Add comment block..
+            /*Copy previous token into the array*/
+            if (head_position < i)
+            {
+                cmd[i] = '\0'; // null terminate token
+                tokens = add_token(tokens, token_cnt, &cmd[head_position]);
+                // Position head onto new token
+                head_position = i + 1;
+            }
 
-                /*Copy special token into the array*/
-                if (cmd[i + 1] == '=' || cmd[i + 1] == '>' || cmd[i + 1] == '<')
-                    special_token[1] = cmd[i + 1];
-                
-                tokens = add_token(tokens, token_cnt, special_token);
-                break;
-            case SPACE:
-            case NEW_LINE:
-                // Copy token into the array
-                if(head_position < i)
-                {
-                    cmd[i] = '\0'; // null terminate token
-                    tokens = add_token(tokens, token_cnt, &cmd[head_position]);
-                }
-                break;
-            case OTHER:
-            default:    
-                continue;
+            if (special_token[0] == '#')
+                return tokens; // TODO: Add comment block..
+
+            /*Copy special token into the array*/
+            if (cmd[i + 1] == '=' || cmd[i + 1] == '>' || cmd[i + 1] == '<')
+                special_token[1] = cmd[++i];
+
+            tokens = add_token(tokens, token_cnt, special_token);
+            break;
+
+        case SPACE:
+        case NEW_LINE:
+            // Copy token into the array
+            if (head_position < i)
+            {
+                cmd[i] = '\0'; // null terminate token
+                tokens = add_token(tokens, token_cnt, &cmd[head_position]);
+            }
+            break;
+
+        case OTHER:
+        default:
+            continue;
         }
         // Position head onto new token
         head_position = i + 1;
     }
     return tokens;
-} 
+}
 
-static Token *token_classifier(char **token, size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
+/*@token_classifier
+**Function: Classifies tokens.*/
+static Token *token_classifier(char **token, const size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
 {
-    size_t number_of_ctox = 0;
 
     if (!token)
         return NULL;
 
-    Token *ctoken = (Token *)malloc(sizeof(Token));
+    // Allocate number of tokens as ctoken
+    Token *ctoken = (Token *)malloc(sizeof(Token) * number_of_tokens);
     if (ctoken == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for ctoken!");
@@ -328,124 +355,23 @@ static Token *token_classifier(char **token, size_t number_of_tokens, size_t *nu
 
     for (size_t i = 0; i < number_of_tokens; ++i)
     {
-        number_of_ctox++;
-        ctoken = (Token *)realloc(ctoken, sizeof(Token) * number_of_ctox);
-        // Free all allocated memory before exiting
-        if (!ctoken)
-        {
-            fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
-            for (size_t j = 0; j < number_of_ctox - 1; ++j)
-                free(ctoken[j].lexeme);
-            free(ctoken);
-            exit(EXIT_FAILURE);
-        }
-
-        ctoken[i].lexeme = strdup(token[i]);
-
-        if (!ctoken[i].lexeme)
-        {
-            perror("Failed to duplicate string");
-            // Free all allocated memory before exiting
-            for (size_t j = 0; j < (i + 1); j++)
-            {
-                free(ctoken[j].lexeme);
-            }
-            free(ctoken);
-            return NULL;
-        }
-        ctoken[i].literal.char_value = ctoken[i].lexeme;
-        if (strlen(token[i]) == 1)
-        {
-            switch (token[i][0])
-            {
-            case '(':
-                ctoken[i].type = LEFT_PARENTHESIS;
-                break;
-            case ')':
-                ctoken[i].type = RIGHT_PARENTHESIS;
-                break;
-            case '{':
-                ctoken[i].type = LEFT_BRACE;
-                break;
-            case '}':
-                ctoken[i].type = RIGHT_BRACE;
-                break;
-            case '.':
-                ctoken[i].type = DOT;
-                break;
-            case ';':
-                ctoken[i].type = SEMICOLON;
-                break;
-            case '#':
-                ctoken[i].type = COMMENT;
-                break;
-            case '|':
-                ctoken[i].type = PIPE_OR_BITWISE;
-                break;
-            case '&':
-                ctoken[i].type = AND;
-                break;
-            case '~':
-                ctoken[i].type = XOR;
-                break;
-            case '<':
-                ctoken[i].type = REDIRECTION_LEFT_LESS_RELATIONAL;
-                break;
-            case '>':
-                ctoken[i].type = REDIRECTION_RIGHT_GREATER_RELATIONAL;
-                break;
-            case '+':
-                ctoken[i].type = ADD;
-                break;
-            case '-':
-                ctoken[i].type = SUBTRACT;
-                break;
-            case '*':
-                ctoken[i].type = MULTIPLY;
-                break;
-            case '/':
-                ctoken[i].type = DIVIDE;
-                break;
-            case '%':
-                ctoken[i].type = MODULUS;
-                break;
-            case '!':
-                ctoken[i].type = EXCLAMATION;
-                break;
-            case '=':
-                ctoken[i].type = EQUAL;
-                break;
-            default:
-                ctoken[i].type = IDENTIFIER;
-                break;
-            }
-        }
-        else if (!compare_token(token[i], "!="))
-            ctoken[i].type = EXCLAMATION_EQUEAL;
-        else if (!compare_token(token[i], "=="))
-            ctoken[i].type = DOUBLE_EQUAL;
-        else if (!compare_token(token[i], ">="))
-            ctoken[i].type = GREATER_EQUAL;
-        else if (!compare_token(token[i], "<="))
-            ctoken[i].type = LESS_EQUAL;
-        else if (!compare_token(token[i], "<<"))
-            ctoken[i].type = SHIFT_LEFT;
-        else if (!compare_token(token[i], ">>"))
-            ctoken[i].type = SHIFT_RIGHT;
+        // Check for special characters
+        if (type_of_character(token[i][0]) == SPECIAL)
+            ctoken[i].type = classify_special_token(token[i]);
         else if (!compare_token(token[i], "pwd"))
             ctoken[i].type = PWD;
         else if (!compare_token(token[i], "exec"))
             ctoken[i].type = EXEC;
-        else if (!compare_token(token[i], "clear") || !compare_token(token[i], "clear_terminal"))
+        else if (!compare_token(token[i], "clear"))
             ctoken[i].type = CLEAR;
         else if (!compare_token(token[i], "if"))
             ctoken[i].type = IF;
         else if (!compare_token(token[i], "else"))
             ctoken[i].type = ELSE;
         else if (!compare_token(token[i], "false"))
-            ctoken[i].type = FALSE;
+            ctoken[i].type = FALSE_TOKEN;
         else if (!compare_token(token[i], "true"))
-            ctoken[i].type = TRUE;
+            ctoken[i].type = TRUE_TOKEN;
         else if (!compare_token(token[i], "for"))
             ctoken[i].type = FOR;
         else if (!compare_token(token[i], "while"))
@@ -465,12 +391,28 @@ static Token *token_classifier(char **token, size_t number_of_tokens, size_t *nu
         else
             ctoken[i].type = IDENTIFIER;
 
+        ctoken[i].lexeme = strdup(token[i]);
+        if (!ctoken[i].lexeme || ctoken[i].type == EXIT_FAILURE)
+        {
+            fprintf(stderr, "error: Failed to classify token %s\n", token[i]);
+            // Free all allocated memory before exiting
+            for (size_t j = 0; j < (i + 1); j++)
+            {
+                free(ctoken[j].lexeme);
+            }
+            free(ctoken);
+            return NULL;
+        }
+
+        ctoken[i].literal.char_value = ctoken[i].lexeme;
+    }
+    *number_of_ctokens = number_of_tokens;
+    for (int i = 0; i < *number_of_ctokens; ++i)
+    {
         printf("TOKEN: ");
         print_term(ctoken[i].lexeme);
         print_term("\n");
     }
-    *number_of_ctokens = number_of_ctox;
-    printf("Finished\n");
     return ctoken;
 }
 
