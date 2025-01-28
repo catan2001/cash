@@ -72,7 +72,7 @@ enum TokenType // TODO: add the rest...
     SHIFT_RIGHT,        // done
 
     // Literals:
-    IDENTIFIER,
+    IDENTIFIER,         // done
     STRING,
     NUMBER,
 
@@ -97,15 +97,14 @@ enum TokenType // TODO: add the rest...
     EOF_TOKEN    // done
 };
 
-typedef enum CharacterType {SPECIAL, SPACE, NEW_LINE, OTHER} character_t;
+typedef enum CharacterType {SPECIAL, QUOTES, SPACE, NEW_LINE, OTHER} character_t;
 
 /*@Type Union: Abstract the type for interpreter*/
 typedef union value_u
 {
-    size_t integer_value; // 32
-    float float_value;    // 32
-    double double_value;  // 64
-    char *char_value;     // 64
+    long long int integer_value; // 64
+    double float_value;         // 64
+    char *char_value;           // 64
 } Value;
 
 /*@Type Structure: Used for tokenization*/
@@ -182,7 +181,7 @@ static void clear_terminal(void)
 
 /*@compare_token
 **Function: Compares token with value.*/
-static int compare_token(char *token, char *value)
+static int compare_token(const char *token, const char *value)
 {
     if (strlen(token) != strlen(value))
         return EXIT_FAILURE;
@@ -235,6 +234,7 @@ static character_t type_of_character(char c)
             case ';':
             case '&':
             case '#': 
+            case 39: // '
             case '(':
             case ')':
             case '{':
@@ -248,6 +248,7 @@ static character_t type_of_character(char c)
             case '=':
             case '<':   
             case '>':   return SPECIAL;
+            case '"':   return QUOTES;
             case ' ':
             case '\t':
             case '\r':  return SPACE;
@@ -256,8 +257,18 @@ static character_t type_of_character(char c)
     }
 }
 
-static int classify_special_token(const char *token)
+static int is_digit(char c)
 {
+    return c >= '0' && c <= '9';
+}
+
+/*@classify_special_token
+**Helper Function: Classifies special character token*/
+static enum TokenType classify_special_token(const char *token, Token *ctoken)
+{   
+    ctoken->lexeme = strdup(token);
+    ctoken->literal.char_value = NULL;
+
     if (type_of_character(token[1]) == SPECIAL)
     {
         switch (token[0])
@@ -275,7 +286,86 @@ static int classify_special_token(const char *token)
             return FAILED_TO_CLASSIFY;
         }
     }
-    return (int)token[0];
+    return (enum TokenType)token[0];
+}
+
+/*@classify_string
+**Helper Function: Classifies strings*/
+static enum TokenType classify_string(char *token, Token *ctoken) 
+{
+    char tmp_char = token[strlen(token)-1];
+    
+    // Temporary change token and add string that is inside quotes
+    token[strlen(token) - 1] = '\0';
+    ctoken->literal.char_value = strdup(&token[1]);
+    if(!ctoken->literal.char_value)
+    {
+        fprintf(stderr, "error: classify_string failed to duplicate string!\n");
+    }
+    
+    token[strlen(token) - 1] = tmp_char;
+    ctoken->lexeme = NULL;
+    return STRING;
+}
+
+/*@classify_number
+**Helper Function: Classifies numbers*/
+static enum TokenType classify_number(const char *token, Token *ctoken) 
+{
+    ctoken->lexeme = strdup(token);
+    ctoken->type = NUMBER;
+    for(int i = 0; token[i]; ++i) {
+        if(token[i] == '.') 
+        {
+            ctoken->literal.float_value = atof(token);
+            return NUMBER;
+        }
+    }
+    ctoken->literal.integer_value = atoi(token);
+    return NUMBER;
+}
+
+/*@classify_keywords
+**Helper Function: Classifies keywords*/
+static enum TokenType classify_keywords(const char *token, Token *ctoken)
+{
+    ctoken->lexeme = NULL;
+    ctoken->literal.char_value = NULL;
+
+    if (!compare_token(token, "pwd"))
+        return PWD;
+    else if (!compare_token(token, "exec"))
+        return EXEC;
+    else if (!compare_token(token, "clear"))
+        return CLEAR;
+    else if (!compare_token(token, "if"))
+        return IF;
+    else if (!compare_token(token, "else"))
+        return ELSE;
+    else if (!compare_token(token, "false"))
+        return FALSE_TOKEN;
+    else if (!compare_token(token, "true"))
+        return TRUE_TOKEN;
+    else if (!compare_token(token, "for"))
+        return FOR;
+    else if (!compare_token(token, "while"))
+        return WHILE;
+    else if (!compare_token(token, "null"))
+        return NULL_TOKEN;
+    else if (!compare_token(token, "enum"))
+        return ENUM_TOKEN;
+    else if (!compare_token(token, "var"))
+        return VAR;
+    else if (!compare_token(token, "printf"))
+        return PRINTF;
+    else if (!compare_token(token, "funct"))
+        return FUNCT;
+    else if (!compare_token(token, "eof"))
+        return EOF_TOKEN;
+    else {
+        ctoken->lexeme = strdup(token);
+        return IDENTIFIER;
+    }
 }
 
 /*@tokenizer
@@ -317,6 +407,37 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
             tokens = add_token(tokens, token_cnt, special_token);
             break;
 
+        case QUOTES:
+            /*Report an error if an identifier is followed by quotes*/
+            if (head_position < i)
+            {
+                fprintf(stderr,"error: Syntax Error at %d! Expected valid separator after identifier.\n", i);
+                return tokens;
+            }
+
+            while(cmd[++i] != '"') {
+                printf("asd\n");
+                /*Report a warning if quotes are unterminated*/
+                if(cmd[i] == '\n' || cmd[i] == '\0') { // In future change to when it reaches EOF
+                    fprintf(stderr, "warning: Unterminated string at %d! \n", i);
+                    break;
+                    //return tokens;
+                } 
+            }
+            /*Report an error if an quotes are followed by an identifier*/
+            if(type_of_character(cmd[i+1]) == OTHER) {
+                fprintf(stderr, "error: Syntax Error at %d! Unexpected token.\n", i);
+                return tokens;   
+            }
+            // Temporarily save character and null terminate
+            char tmp_char = cmd[i+1];
+            cmd[i+1] = '\0';
+            
+            tokens = add_token(tokens, token_cnt, &cmd[head_position]);
+            
+            // Change back cmd[i+1] character to temporarily saved one
+            cmd[i+1] = tmp_char;
+            break;
         case SPACE:
         case NEW_LINE:
             // Copy token into the array
@@ -355,59 +476,33 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
 
     for (size_t i = 0; i < number_of_tokens; ++i)
     {
-        // Check for special characters
+        // Classify special characters
         if (type_of_character(token[i][0]) == SPECIAL)
-            ctoken[i].type = classify_special_token(token[i]);
-        else if (!compare_token(token[i], "pwd"))
-            ctoken[i].type = PWD;
-        else if (!compare_token(token[i], "exec"))
-            ctoken[i].type = EXEC;
-        else if (!compare_token(token[i], "clear"))
-            ctoken[i].type = CLEAR;
-        else if (!compare_token(token[i], "if"))
-            ctoken[i].type = IF;
-        else if (!compare_token(token[i], "else"))
-            ctoken[i].type = ELSE;
-        else if (!compare_token(token[i], "false"))
-            ctoken[i].type = FALSE_TOKEN;
-        else if (!compare_token(token[i], "true"))
-            ctoken[i].type = TRUE_TOKEN;
-        else if (!compare_token(token[i], "for"))
-            ctoken[i].type = FOR;
-        else if (!compare_token(token[i], "while"))
-            ctoken[i].type = WHILE;
-        else if (!compare_token(token[i], "null"))
-            ctoken[i].type = NULL_TOKEN;
-        else if (!compare_token(token[i], "enum"))
-            ctoken[i].type = ENUM_TOKEN;
-        else if (!compare_token(token[i], "var"))
-            ctoken[i].type = VAR;
-        else if (!compare_token(token[i], "printf"))
-            ctoken[i].type = PRINTF;
-        else if (!compare_token(token[i], "funct"))
-            ctoken[i].type = FUNCT;
-        else if (!compare_token(token[i], "eof"))
-            ctoken[i].type = EOF_TOKEN;
-        else
-            ctoken[i].type = IDENTIFIER;
+            ctoken[i].type = classify_special_token(token[i], &ctoken[i]);
+        // Classify strings
+        else if (type_of_character(token[i][0]) == QUOTES)
+            ctoken[i].type = classify_string(token[i], &ctoken[i]);
+        // Classify numbers
+        else if (is_digit(token[i][0]))
+            ctoken[i].type = classify_number(token[i], &ctoken[i]);
+        // Classify keywords 
+        else 
+            ctoken[i].type = classify_keywords(token[i], &ctoken[i]);
 
-        ctoken[i].lexeme = strdup(token[i]);
-        if (!ctoken[i].lexeme || ctoken[i].type == EXIT_FAILURE)
+        /*if (!ctoken[i].lexeme || ctoken[i].type == EXIT_FAILURE)
         {
             fprintf(stderr, "error: Failed to classify token %s\n", token[i]);
             // Free all allocated memory before exiting
             for (size_t j = 0; j < (i + 1); j++)
-            {
                 free(ctoken[j].lexeme);
-            }
             free(ctoken);
-            return NULL;
-        }
 
-        ctoken[i].literal.char_value = ctoken[i].lexeme;
+            *number_of_ctokens = 0;
+            return NULL;
+        }*/
     }
     *number_of_ctokens = number_of_tokens;
-    for (int i = 0; i < *number_of_ctokens; ++i)
+    for (int i = 0; i < number_of_tokens; ++i)
     {
         printf("TOKEN: ");
         print_term(ctoken[i].lexeme);
@@ -443,8 +538,8 @@ int main(void)
     while (TRUE)
     {
         char **tokens;
-        size_t number_of_tokens;
-        size_t number_of_ctokens;
+        size_t number_of_tokens = 0;
+        size_t number_of_ctokens = 0;
 
         read_cmd(pcmd, MAX_SIZE);
         tokens = tokenizer(pcmd, &number_of_tokens);
