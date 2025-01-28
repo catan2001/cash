@@ -46,67 +46,73 @@ EXAMPLE: cmd1 | cmd2 > file
 - [x] Refactored code
 
 #### 28.1.2025.
-- [ ] HASH map
-- [ ] implement numbers
-- [ ] implement string "..."
+- [x] tokenized strings
+- [x] classify strings
+- [x] classify special token
+- [x] classify keywords
+- [x] classify numbers
+
+#### 29.1.2025.
+- [ ] manage unused characters
+- [ ] encapsulate number to abstract type
 
 ### Steps
 
 - [x] scanning the code from stdin
 - [x] tokenization
-- [] classification of tokens
-  - [] control flow constructs
-  - [] subshells and command substitution
-  - [] redirection
-  - [] if statements
-  - [] pipeline
-  - [] logical operators
-  - [] dynamic types
-  - [] comments
-- [] parsing into ASTs
-- [] code analysis
-  - [] type error
-- [] [garbage collector](https://courses.cs.washington.edu/courses/cse590p/05au/p50-bacon.pdf) | 
+- [ ] classification of tokens
+  - [ ] control flow constructs
+  - [ ] subshells and command substitution
+  - [ ] redirection
+  - [ ] if statements
+  - [ ] pipeline
+  - [ ] logical operators
+  - [ ] dynamic types
+  - [ ] comments
+- [ ] parsing into ASTs
+- [ ] code analysis
+  - [ ] type error
+- [ ] [garbage collector](https://courses.cs.washington.edu/courses/cse590p/05au/p50-bacon.pdf) | 
      [reference counting](https://ps.uci.edu/~cyu/p231C/LectureNotes/lecture13:referenceCounting/lecture13.pdf)
-- [] execute the code
+- [ ] execute the code
 
 ### Implementation Details
-- [] [Data types](https://en.wikipedia.org/wiki/Data_type):
-  - [] numbers: integer, decimal, hex, octal, binary
-  - [] strings
-  - [] enum
-  - [] null
-  - [] structures?
-  - [] classes?
-  - [] arrays
-  - [] trees?
+- [ ] [Data types](https://en.wikipedia.org/wiki/Data_type):
+  - [ ] numbers: integer, decimal, hex, octal, binary
+  - [ ] strings
+  - [ ] enum
+  - [ ] null
+  - [ ] structures?
+  - [ ] classes?
+  - [ ] arrays
+  - [ ] trees?
 
-- [] Expressions:
-  - [] add, subtract, multiply, divide, modulus
-  - [] logical operators
-  - [] comparison operators (implicit conversion?)
-  - [] bitwise operators
-  - [] conditional operators
-  - [] precedence and associativity 
-  - [] shift operators
+- [ ] Expressions:
+  - [ ] add, subtract, multiply, divide, modulus
+  - [ ] logical operators
+  - [ ] comparison operators (implicit conversion?)
+  - [ ] bitwise operators
+  - [ ] conditional operators
+  - [ ] precedence and associativity 
+  - [ ] shift operators
 
-- [] Comments 
+- [ ] Comments 
 ```python
        # I think that using this sign will help later when constructing path
 
        #* This should be used if a block of comment is necessary *#
 ```
 
-- [] Statements
-  - [] similar to the Python or Bash?
-- [] Variables
-- [] Control Flow
-  - [] if, else
-  - [] while
-  - [] for
-  - [] foreach
-  - [] switch case?
-  - [] break and continue
+- [ ] Statements
+  - [ ] similar to the Python or Bash?
+- [ ] Variables
+- [ ] Control Flow
+  - [ ] if, else
+  - [ ] while
+  - [ ] for
+  - [ ] foreach
+  - [ ] switch case?
+  - [ ] break and continue
 
 - Function
 ```python
@@ -115,7 +121,7 @@ EXAMPLE: cmd1 | cmd2 > file
               return a+b;
        }
 ```
-- [] Closures
+- [ ] Closures
 ```
 funct returnFunction() {
   var outside = "outside";
@@ -150,5 +156,5 @@ funct returnFunction() {
 
 ## Ideas:
 
-- [] Shift ASCII characters, example: a >> 1 == b... 
+- [ ] Shift ASCII characters, example: a >> 1 == b... 
 
