@@ -97,7 +97,7 @@ enum TokenType // TODO: add the rest...
     EOF_TOKEN    // done
 };
 
-typedef enum CharacterType {SPECIAL, QUOTES, SPACE, NEW_LINE, OTHER} character_t;
+typedef enum CharacterType {SPECIAL, QUOTES, SPACE, NEW_LINE, OTHER, UNUSED_CHARACTERS} character_t;
 
 /*@Type Union: Abstract the type for interpreter*/
 typedef union value_u
@@ -223,43 +223,45 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
     return tokens;
 }
 
+/*@is_digit
+**Helper Function: Determines if character is digit*/
+static int is_digit(const char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+/*@is_letter
+**Helper Function: Determines if character is letter*/
+static int is_letter(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
 /*@type_of_character
 **Helper Function: Determines type of character*/
 static character_t type_of_character(char c)
 {
+    // Determine if letter, number or underscore
+    if(is_digit(c) || is_letter(c) || c == '_')
+        return OTHER;
+
+    // Determine if Special characters
     switch (c)
     {
-            case '~':
-            case '|':
-            case ';':
-            case '&':
-            case '#': 
-            case 39: // '
-            case '(':
-            case ')':
-            case '{':
-            case '}':
-            case '*':
-            case '+':
-            case '-':
-            case '%':
-            case '/':
-            case '!': 
-            case '=':
-            case '<':   
-            case '>':   return SPECIAL;
-            case '"':   return QUOTES;
-            case ' ':
-            case '\t':
-            case '\r':  return SPACE;
-            case '\n':  return NEW_LINE;
-            default:    return OTHER;
+            case '~': case '|': case ';': case '&': case '#': 
+            case '\'': case '(': case ')': case '{': case '}':
+            case '*': case '+': case '-': case '%': case '/':
+            case '!':  case '=': case '<': case '>': case '?':
+                return SPECIAL;
+            case '"':  
+                return QUOTES;
+            case ' ':  case '\t': case '\r':  
+                return SPACE;
+            case '\n':  
+                return NEW_LINE;
+            default:    
+                return UNUSED_CHARACTERS;
     }
-}
-
-static int is_digit(char c)
-{
-    return c >= '0' && c <= '9';
 }
 
 /*@classify_special_token
@@ -267,7 +269,9 @@ static int is_digit(char c)
 static enum TokenType classify_special_token(const char *token, Token *ctoken)
 {   
     ctoken->lexeme = strdup(token);
-    ctoken->literal.char_value = NULL;
+    ctoken->literal.char_value = ctoken->lexeme;
+    if(!ctoken->lexeme)
+        return FAILED_TO_CLASSIFY;
 
     if (type_of_character(token[1]) == SPECIAL)
     {
@@ -298,13 +302,11 @@ static enum TokenType classify_string(char *token, Token *ctoken)
     // Temporary change token and add string that is inside quotes
     token[strlen(token) - 1] = '\0';
     ctoken->literal.char_value = strdup(&token[1]);
+    ctoken->lexeme = ctoken->literal.char_value;
     if(!ctoken->literal.char_value)
-    {
-        fprintf(stderr, "error: classify_string failed to duplicate string!\n");
-    }
+        return FAILED_TO_CLASSIFY;
     
     token[strlen(token) - 1] = tmp_char;
-    ctoken->lexeme = NULL;
     return STRING;
 }
 
@@ -314,6 +316,9 @@ static enum TokenType classify_number(const char *token, Token *ctoken)
 {
     ctoken->lexeme = strdup(token);
     ctoken->type = NUMBER;
+    if(!ctoken->lexeme)
+        return FAILED_TO_CLASSIFY;
+
     for(int i = 0; token[i]; ++i) {
         if(token[i] == '.') 
         {
@@ -325,9 +330,9 @@ static enum TokenType classify_number(const char *token, Token *ctoken)
     return NUMBER;
 }
 
-/*@classify_keywords
-**Helper Function: Classifies keywords*/
-static enum TokenType classify_keywords(const char *token, Token *ctoken)
+/*@classify_reserved_words
+**Helper Function: Classifies reserved words*/
+static enum TokenType classify_reserved_words(const char *token, Token *ctoken)
 {
     ctoken->lexeme = NULL;
     ctoken->literal.char_value = NULL;
@@ -362,8 +367,12 @@ static enum TokenType classify_keywords(const char *token, Token *ctoken)
         return FUNCT;
     else if (!compare_token(token, "eof"))
         return EOF_TOKEN;
-    else {
+    else 
+    {
         ctoken->lexeme = strdup(token);
+        if(!ctoken->lexeme)
+            return FAILED_TO_CLASSIFY;
+        
         return IDENTIFIER;
     }
 }
@@ -378,13 +387,18 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
     size_t head_position = 0;
     char **tokens = NULL;
 
-    // Reinitialize token count back to zero
+    /*Reinitialize token count back to zero*/
     *token_cnt = 0;
 
     for (size_t i = 0; cmd[i]; ++i)
     {
         switch (type_of_character(cmd[i]))
         {
+        case UNUSED_CHARACTERS:
+            fprintf(stderr, "error: Character is not allowed in Cash!\n\t Error at: %d! \n", i);
+            free(cmd);
+            exit(EXIT_FAILURE);
+
         case SPECIAL:
             char special_token[3] = {cmd[i], '\0', '\0'};
 
@@ -393,7 +407,7 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
             {
                 cmd[i] = '\0'; // null terminate token
                 tokens = add_token(tokens, token_cnt, &cmd[head_position]);
-                // Position head onto new token
+                /*Position head onto new token*/
                 head_position = i + 1;
             }
 
@@ -416,7 +430,6 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
             }
 
             while(cmd[++i] != '"') {
-                printf("asd\n");
                 /*Report a warning if quotes are unterminated*/
                 if(cmd[i] == '\n' || cmd[i] == '\0') { // In future change to when it reaches EOF
                     fprintf(stderr, "warning: Unterminated string at %d! \n", i);
@@ -429,18 +442,18 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
                 fprintf(stderr, "error: Syntax Error at %d! Unexpected token.\n", i);
                 return tokens;   
             }
-            // Temporarily save character and null terminate
+            /*Temporarily save character and null terminate*/
             char tmp_char = cmd[i+1];
             cmd[i+1] = '\0';
             
             tokens = add_token(tokens, token_cnt, &cmd[head_position]);
             
-            // Change back cmd[i+1] character to temporarily saved one
+            /*Change back cmd[i+1] character to temporarily saved one*/
             cmd[i+1] = tmp_char;
             break;
         case SPACE:
         case NEW_LINE:
-            // Copy token into the array
+            /*Copy token into the array*/
             if (head_position < i)
             {
                 cmd[i] = '\0'; // null terminate token
@@ -466,7 +479,7 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
     if (!token)
         return NULL;
 
-    // Allocate number of tokens as ctoken
+    /*Allocate number of tokens as ctoken*/
     Token *ctoken = (Token *)malloc(sizeof(Token) * number_of_tokens);
     if (ctoken == NULL)
     {
@@ -476,30 +489,31 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
 
     for (size_t i = 0; i < number_of_tokens; ++i)
     {
-        // Classify special characters
+        /*Classify special characters*/
         if (type_of_character(token[i][0]) == SPECIAL)
             ctoken[i].type = classify_special_token(token[i], &ctoken[i]);
-        // Classify strings
+        /*Classify strings*/ 
         else if (type_of_character(token[i][0]) == QUOTES)
             ctoken[i].type = classify_string(token[i], &ctoken[i]);
-        // Classify numbers
+        /*Classify numbers*/ 
         else if (is_digit(token[i][0]))
             ctoken[i].type = classify_number(token[i], &ctoken[i]);
-        // Classify keywords 
+        /*Classify reserved words*/
         else 
-            ctoken[i].type = classify_keywords(token[i], &ctoken[i]);
+            ctoken[i].type = classify_reserved_words(token[i], &ctoken[i]);
 
-        /*if (!ctoken[i].lexeme || ctoken[i].type == EXIT_FAILURE)
+        /*Handle error when classifying*/ 
+        if (ctoken[i].type == FAILED_TO_CLASSIFY)
         {
             fprintf(stderr, "error: Failed to classify token %s\n", token[i]);
-            // Free all allocated memory before exiting
+            /*Free all allocated memory before exiting*/ 
             for (size_t j = 0; j < (i + 1); j++)
                 free(ctoken[j].lexeme);
             free(ctoken);
 
             *number_of_ctokens = 0;
             return NULL;
-        }*/
+        }
     }
     *number_of_ctokens = number_of_tokens;
     for (int i = 0; i < number_of_tokens; ++i)
