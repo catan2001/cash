@@ -1,4 +1,10 @@
 # Cash
+
+<p align="center">
+  <img src="/misc/Logo.svg" />
+</p>
+
+---
 Simple shell implementation in C for Linux. **Cash** is a learning project designed to explore the inner workings of Bash (or any other shell). The goal is to implement a few fundamental features of Bash, offering a hands-on understanding of shell functionality.
 
 ## Introduction
@@ -22,119 +28,12 @@ EXAMPLE: cmd1 | cmd2 > file
 
 **Explanation**: A lexical analysis tool can theoretically utilize various data structures. For instance, Bash employs a combination of parse trees, hash tables, linked lists, stacks, and dynamic arrays. Once classification is complete, it should be clear how to implement a parse tree in Cash. The difficulty of implementation depends on the computational resources available in Cash. Introducing brackets, () or [] makes huge difference in how parsing is done.
 
+## Notes from the book [Crafting Interpreters](#about-interpreters)
+### 4. Scanning
 
-## Update and TODO List
+- Ideally, we would have an actual abstraction, some kind of “ErrorReporter” interface that gets passed to the scanner and parser so that we can swap out different reporting strategies. For our simple interpreter here, I didn’t do that, but I did at least move the code for error reporting into a different class.
 
-#### 20.1.2025.
-
-- [x] clean heap allocation
-  - [x] added SIGINT to clean heap
-- [x] cleaned code
-- [x] updated Makefile  
-
-#### 21.1.2025.
-- [x] Fixing tokenization of special characters [WIP]
-- [x] Styled code
-- [x] implement comment #
-
-#### 23.1.2025.
-- [x] Fixed tokenizer to properly tokenize special characters
-- [x] Added helper functions type_of_character and add_token
-- [x] Cleaned up the code
-
-#### 27.1.2025.
-- [x] Refactored code
-
-#### 28.1.2025.
-- [x] tokenized strings
-- [x] classify strings
-- [x] classify special token
-- [x] classify keywords
-- [x] classify numbers
-
-#### 29.1.2025.
-- [ ] manage unused characters
-- [ ] encapsulate number to abstract type
-
-### Steps
-
-- [x] scanning the code from stdin
-- [x] tokenization
-- [ ] classification of tokens
-  - [ ] control flow constructs
-  - [ ] subshells and command substitution
-  - [ ] redirection
-  - [ ] if statements
-  - [ ] pipeline
-  - [ ] logical operators
-  - [ ] dynamic types
-  - [ ] comments
-- [ ] parsing into ASTs
-- [ ] code analysis
-  - [ ] type error
-- [ ] [garbage collector](https://courses.cs.washington.edu/courses/cse590p/05au/p50-bacon.pdf) | 
-     [reference counting](https://ps.uci.edu/~cyu/p231C/LectureNotes/lecture13:referenceCounting/lecture13.pdf)
-- [ ] execute the code
-
-### Implementation Details
-- [ ] [Data types](https://en.wikipedia.org/wiki/Data_type):
-  - [ ] numbers: integer, decimal, hex, octal, binary
-  - [ ] strings
-  - [ ] enum
-  - [ ] null
-  - [ ] structures?
-  - [ ] classes?
-  - [ ] arrays
-  - [ ] trees?
-
-- [ ] Expressions:
-  - [ ] add, subtract, multiply, divide, modulus
-  - [ ] logical operators
-  - [ ] comparison operators (implicit conversion?)
-  - [ ] bitwise operators
-  - [ ] conditional operators
-  - [ ] precedence and associativity 
-  - [ ] shift operators
-
-- [ ] Comments 
-```python
-       # I think that using this sign will help later when constructing path
-
-       #* This should be used if a block of comment is necessary *#
-```
-
-- [ ] Statements
-  - [ ] similar to the Python or Bash?
-- [ ] Variables
-- [ ] Control Flow
-  - [ ] if, else
-  - [ ] while
-  - [ ] for
-  - [ ] foreach
-  - [ ] switch case?
-  - [ ] break and continue
-
-- Function
-```python
-       # use funct just to appreciate Robert Nystorm 
-       funct SumOfTwo(a, b){ 
-              return a+b;
-       }
-```
-- [ ] Closures
-```
-funct returnFunction() {
-  var outside = "outside";
-
-  funct inner() {
-    print outside;
-  }
-
-  return inner;
-}
-```
-
-- [] Classes/Structures or Prototypes
+- When two lexical grammar rules can both match a chunk of code that the scanner is looking at, whichever one matches the most characters wins.
 
 ## References
 
