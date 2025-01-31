@@ -32,7 +32,9 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 ### 29.1.2025.
 - [x] manage unused characters
 
-### 30.1.2025.
+### 31.1.2025.
+- [ ] Combine tokenization and classification into one function Scanner/Lexer
+- [ ] Define Rules for grammar of cashl
 - [ ] ASTs and representing code
 - [ ] encapsulate number abstract type for print
 - [ ] Error handling function
