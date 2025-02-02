@@ -34,36 +34,38 @@ SOFTWARE.
 #define FALSE 0
 #define ERROR -1
 
-// Maximum size of the input line
+/* Maximum size of the input line */
 #define MAX_SIZE 1000
 
-enum TokenType // TODO: add the rest...
+typedef enum 
 {
-    FAILED_TO_CLASSIFY = 1,
+    /* Used to indicate failure: */
+    FAILED_TO_CLASSIFY = 1, 
     
-    // Single character special token
-    EXCLAMATION = 33,                          // done 33 0
-    COMMENT = 35,                              // done 35 2
-    MODULUS = 37,                              // done 37 4
-    AND = 38,                                  // done 38 5
-    LEFT_PARENTHESIS = 40,                     // done 40 7
-    RIGHT_PARENTHESIS = 41,                    // done 41 8
-    MULTIPLY = 42,                             // done 42 9
-    ADD = 43,                                  // done 43 10
-    COMMA = 44,                                // done 44 11
-    SUBTRACT = 45,                             // done 45 12
-    DOT = 46,                                  // done 46 13
-    DIVIDE = 47,                               // done 47 14
-    SEMICOLON = 59,                            // done 59 26
-    REDIRECTION_LEFT_LESS_RELATIONAL = 60,     // done 60 27
-    EQUAL = 61,                                // done 61 28
-    REDIRECTION_RIGHT_GREATER_RELATIONAL = 62, // done 62 29
-    LEFT_BRACE = 123,                          // done 123 24
-    PIPE_OR_BITWISE = 124,                     // done 124 25
-    RIGHT_BRACE = 125,                         // done 125 26
-    XOR = 126,                                 // done 126 27
+    /* Single character special token: */
+    EXCLAMATION = '!',
+    COMMENT = '#',
+    MODULUS = '%',
+    AND = '&',
+    LEFT_PARENTHESIS = '(',
+    RIGHT_PARENTHESIS = ')',
+    MULTIPLY = '*',
+    ADD = '+',
+    COMMA = ',',
+    SUBTRACT = '-',
+    DOT = '.',
+    DIVIDE = '/',
+    SEMICOLON = ';',
+    REDIRECTION_LEFT_LESS_RELATIONAL = '<',
+    EQUAL = '=',
+    REDIRECTION_RIGHT_GREATER_RELATIONAL = '>',
+    LEFT_BRACE = '{',
+    PIPE = '|',
+    RIGHT_BRACE = '}',
+    XOR = '~',
 
-    // Two character special token
+
+    /* Two character special token: */
     EXCLAMATION_EQUEAL, // done
     DOUBLE_EQUAL,       // done
     GREATER_EQUAL,      // done
@@ -71,18 +73,18 @@ enum TokenType // TODO: add the rest...
     SHIFT_LEFT,         // done
     SHIFT_RIGHT,        // done
 
-    // Literals:
+    /* Literals: */
     IDENTIFIER,         // done
     STRING,
     NUMBER,
 
-    // Commands:
+    /* Commands: */
     EXEC,  // done
     PWD,   // done
     CLEAR, // done
     TIME,
 
-    // Keywords:
+    /* Reserved Words: */
     IF,          // done
     ELSE,        // done
     FALSE_TOKEN, // done
@@ -95,26 +97,60 @@ enum TokenType // TODO: add the rest...
     PRINTF,      // done
     FUNCT,       // done
     EOF_TOKEN    // done
-};
+} TokenType;
 
-typedef enum CharacterType {SPECIAL, QUOTES, SPACE, NEW_LINE, OTHER, UNUSED_CHARACTERS} character_t;
+typedef enum
+{
+    SPECIAL,
+    QUOTES,
+    SPACE,
+    NEW_LINE,
+    OTHER,
+    UNUSED_CHARACTERS
+} CharacterType;
 
 /*@Type Union: Abstract the type for interpreter*/
 typedef union value_u
 {
-    long long int integer_value; // 64
-    double float_value;         // 64
-    char *char_value;           // 64
+    long long int integer_value;    // 64
+    double float_value;             // 64
+    char *char_value;               // 64
 } Value;
 
 /*@Type Structure: Used for tokenization*/
 typedef struct token_s
 {
-    enum TokenType type;
+    TokenType type;
     char *lexeme;
     Value literal;
     // int line_number; // Add this after implementing error correction
 } Token;
+
+/* Structure used for classifying reserved words */
+typedef struct
+{
+    const char *reserved_word;
+    TokenType type;
+} ReservedWordMapType;
+
+/* Hash Map used for reserved words */
+static const ReservedWordMapType reserved_word_map[] = {
+    {"pwd", PWD},
+    {"exec", EXEC},
+    {"clear", CLEAR},
+    {"if", IF},
+    {"else", ELSE},
+    {"false", FALSE_TOKEN},
+    {"true", TRUE_TOKEN},
+    {"for", FOR},
+    {"while", WHILE},
+    {"null", NULL_TOKEN},
+    {"enum", ENUM_TOKEN},
+    {"var", VAR},
+    {"printf", PRINTF},
+    {"funct", FUNCT},
+    {"eof", EOF_TOKEN}
+};
 
 static char pcmd[MAX_SIZE];
 
@@ -125,35 +161,8 @@ static void sigint_handler(const int sig)
     // Perform cleanup
     fclose(stdout);
     fclose(stdin);
-    fprintf(stderr, "\nCaught SIGINT, cleaning up and exiting...\n");
+    fprintf(stderr, "\nExiting shell...\n");    
     exit(EXIT_SUCCESS);
-}
-
-/*@read_cmd
-**Function: Prints prompt and reads input from stdin*/
-static void read_cmd(char *pcmd, const int lcmd)
-{
-    if (isatty(fileno(stdin)))
-        fprintf(stdout, "cash> ");
-    else
-        return;
-    memset(pcmd, 0, lcmd);
-    fgets(pcmd, lcmd, stdin);
-    return;
-}
-
-/*@print_term
-**Function: Prints output to prompt*/
-static int print_term(char *msg)
-{
-    if (isatty(fileno(stdin)))
-    {
-        fprintf(stdout, msg);
-        return EXIT_SUCCESS;
-    }
-
-    fprintf(stderr, "Could not output to terminal, file descriptor %d", fileno(stdin));
-    return EXIT_FAILURE;
 }
 
 // TODO: implement ErrorReporter
@@ -171,13 +180,44 @@ static int error(char *msg)
     return EXIT_FAILURE;
 }
 
+/* Terminal utilities */
+
 /*@clear_terminal
 **Function: Clears the terminal*/
 static void clear_terminal(void)
 {
-    system("clear");
+    printf("\033[H\033[J");
+    fflush(stdout);
     return;
 }
+
+/*@print_term
+**Function: Prints output to prompt*/
+static int print_term(char *msg)
+{
+    if (isatty(fileno(stdin)))
+    {
+        fprintf(stdout, msg);
+        return EXIT_SUCCESS;
+    }   
+
+    fprintf(stderr, "Could not output to terminal, file descriptor %d", fileno(stdin));
+    return EXIT_FAILURE;
+}
+
+/*@read_cmd
+**Function: Prints prompt and reads input from stdin*/
+static void read_cmd(char *pcmd, const int lcmd)
+{
+    if (isatty(fileno(stdin)))
+        fprintf(stdout, "cash> ");
+    else
+        return;
+    memset(pcmd, 0, lcmd);
+    fgets(pcmd, lcmd, stdin);
+    return;
+}
+
 
 /*@compare_token
 **Function: Compares token with value.*/
@@ -191,9 +231,7 @@ static int compare_token(const char *token, const char *value)
             return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
-}
-
-/*Lexical analysis section of code*/
+}       
 
 /*@add_token
 **Helper Function: Adds a token to the array*/
@@ -239,7 +277,7 @@ static int is_letter(char c)
 
 /*@type_of_character
 **Helper Function: Determines type of character*/
-static character_t type_of_character(char c)
+static CharacterType type_of_character(char c)
 {
     // Determine if letter, number or underscore
     if(is_digit(c) || is_letter(c) || c == '_')
@@ -266,7 +304,7 @@ static character_t type_of_character(char c)
 
 /*@classify_special_token
 **Helper Function: Classifies special character token*/
-static enum TokenType classify_special_token(const char *token, Token *ctoken)
+static TokenType classify_special_token(const char *token, Token *ctoken)
 {   
     ctoken->lexeme = strdup(token);
     ctoken->literal.char_value = ctoken->lexeme;
@@ -290,12 +328,12 @@ static enum TokenType classify_special_token(const char *token, Token *ctoken)
             return FAILED_TO_CLASSIFY;
         }
     }
-    return (enum TokenType)token[0];
+    return (TokenType)token[0];
 }
 
 /*@classify_string
 **Helper Function: Classifies strings*/
-static enum TokenType classify_string(char *token, Token *ctoken) 
+static TokenType classify_string(char *token, Token *ctoken) 
 {
     char tmp_char = token[strlen(token)-1];
     
@@ -312,7 +350,7 @@ static enum TokenType classify_string(char *token, Token *ctoken)
 
 /*@classify_number
 **Helper Function: Classifies numbers*/
-static enum TokenType classify_number(const char *token, Token *ctoken) 
+static TokenType classify_number(const char *token, Token *ctoken) 
 {
     ctoken->lexeme = strdup(token);
     ctoken->type = NUMBER;
@@ -332,49 +370,23 @@ static enum TokenType classify_number(const char *token, Token *ctoken)
 
 /*@classify_reserved_words
 **Helper Function: Classifies reserved words*/
-static enum TokenType classify_reserved_words(const char *token, Token *ctoken)
+static TokenType classify_reserved_words(const char *token, Token *ctoken)
 {
+    /* Initialize lexeme and literal value to NULL*/
     ctoken->lexeme = NULL;
     ctoken->literal.char_value = NULL;
 
-    if (!compare_token(token, "pwd"))
-        return PWD;
-    else if (!compare_token(token, "exec"))
-        return EXEC;
-    else if (!compare_token(token, "clear"))
-        return CLEAR;
-    else if (!compare_token(token, "if"))
-        return IF;
-    else if (!compare_token(token, "else"))
-        return ELSE;
-    else if (!compare_token(token, "false"))
-        return FALSE_TOKEN;
-    else if (!compare_token(token, "true"))
-        return TRUE_TOKEN;
-    else if (!compare_token(token, "for"))
-        return FOR;
-    else if (!compare_token(token, "while"))
-        return WHILE;
-    else if (!compare_token(token, "null"))
-        return NULL_TOKEN;
-    else if (!compare_token(token, "enum"))
-        return ENUM_TOKEN;
-    else if (!compare_token(token, "var"))
-        return VAR;
-    else if (!compare_token(token, "printf"))
-        return PRINTF;
-    else if (!compare_token(token, "funct"))
-        return FUNCT;
-    else if (!compare_token(token, "eof"))
-        return EOF_TOKEN;
-    else 
-    {
-        ctoken->lexeme = strdup(token);
-        if(!ctoken->lexeme)
-            return FAILED_TO_CLASSIFY;
-        
-        return IDENTIFIER;
+    for (size_t i = 0; i < sizeof(reserved_word_map) / sizeof(reserved_word_map[0]); i++) {
+        if (!compare_token(token, reserved_word_map[i].reserved_word)) {
+            return reserved_word_map[i].type;
+        }
     }
+
+    ctoken->lexeme = strdup(token);
+    if (!ctoken->lexeme)
+        return FAILED_TO_CLASSIFY;
+
+    return IDENTIFIER;
 }
 
 /*@tokenizer
@@ -465,7 +477,7 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
         default:
             continue;
         }
-        // Position head onto new token
+        /*Position head onto new token*/
         head_position = i + 1;
     }
     return tokens;
@@ -546,7 +558,7 @@ int main(void)
     // stdin and stdout streams
     signal(SIGINT, sigint_handler);
 
-    // Clear the terminal at start
+    /*Clear the terminal at start*/
     clear_terminal();
 
     while (TRUE)
@@ -570,7 +582,6 @@ int main(void)
                 free(ctox[i].lexeme);
             free(ctox);
         }
-
         wait(NULL);
     }
     return 0;
