@@ -32,26 +32,34 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 ### 29.1.2025.
 - [x] manage unused characters
 
-### 31.1.2025.
+### 7.2.2025.
+- [ ] Helper functions for AST
+- [ ] ASTs builder and representing code
+- [ ] ASTs print function for debug
+- [ ] Define Rules for grammar of cash
 - [ ] Combine tokenization and classification into one function Scanner/Lexer
-- [ ] Define Rules for grammar of cashl
-- [ ] ASTs and representing code
-- [ ] encapsulate number abstract type for print
+- [ ] Encapsulate number abstract type for print
 - [ ] Error handling function
 
+## Ideas
+- [ ] Instead of having lexer -> parser -> execution. 
+Create syntax tree AST as output file and then execute the AST separately. 
+- [ ] Graphically represent parsed ASTs.
+- [ ] Classes/Structures or Prototypes
+- [ ] Shift ASCII characters, example: a >> 1 -> b... 
 ## Steps
 
 - [x] scanning the code from stdin
 - [x] tokenization
-- [ ] classification of tokens
-  - [ ] control flow constructs
-  - [ ] subshells and command substitution
-  - [ ] redirection
-  - [ ] if statements
-  - [ ] pipeline
-  - [ ] logical operators
-  - [ ] dynamic types
-  - [ ] comments
+- [x] classification of tokens
+  - [x] control flow constructs
+  - [x] subshells and command substitution
+  - [x] redirection
+  - [x] if statements
+  - [x] pipeline
+  - [x] logical operators
+  - [x] dynamic types
+  - [x] comments
 - [ ] parsing into ASTs
 - [ ] code analysis
   - [ ] type error
@@ -60,24 +68,24 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [ ] execute the code
 
 ## Implementation Details
-- [ ] [Data types](https://en.wikipedia.org/wiki/Data_type):
+- [x] [Data types](https://en.wikipedia.org/wiki/Data_type):
   - [ ] numbers: integer, decimal, hex, octal, binary
-  - [ ] strings
-  - [ ] enum
-  - [ ] null
+  - [x] strings
+  - [x] enum
+  - [x] null
   - [ ] structures?
   - [ ] classes?
   - [ ] arrays
   - [ ] trees?
 
-- [ ] Expressions:
-  - [ ] add, subtract, multiply, divide, modulus
-  - [ ] logical operators
-  - [ ] comparison operators (implicit conversion?)
-  - [ ] bitwise operators
-  - [ ] conditional operators
-  - [ ] precedence and associativity 
-  - [ ] shift operators
+- [x] Expressions:
+  - [x] add, subtract, multiply, divide, modulus
+  - [x] logical operators
+  - [x] comparison operators (implicit conversion?)
+  - [x] bitwise operators
+  - [x] conditional operators
+  - [x] precedence and associativity 
+  - [x] shift operators
 
 - [ ] Comments 
 ```python
@@ -116,5 +124,3 @@ funct returnFunction() {
   return inner;
 }
 ```
-
-- [] Classes/Structures or Prototypes
