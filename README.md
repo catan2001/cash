@@ -32,19 +32,21 @@ EXAMPLE: cmd1 | cmd2 > file
 **Note:** Sources from the book are marked with a number of the chapter.
 
 
-### 4. Scanning
+### [Lexical Analysis (Lexer)](#lexical-analysis)
 
-- Ideally, we would have an actual abstraction, some kind of “ErrorReporter” interface that gets passed to the scanner and parser so that we can swap out different reporting strategies. For our simple interpreter here, I didn’t do that, but I did at least move the code for error reporting into a different class.
+Lexical analysis is the first phase of processing source code. It is often called "scanning." In this phase, the interpreter reads the raw text (a sequence of characters) and groups them into meaningful sequences known as tokens. A token might represent a keyword, an identifier, a number, or a symbol like an operator.
 
 - When two lexical grammar rules can both match a chunk of code that the scanner is looking at, whichever one matches the most characters wins.
 
 ### [Formal Language and Formal Grammar Theory](#formal-language-and-formal-grammar-1) 
 
+Formal language and formal grammar theory help us understand and define the rules that determine which sequences of symbols (or strings) are considered valid in a language. Imagine you have a set of characters, known as an alphabet—for example, the digits 0 through 9 along with symbols such as "+" and "=". A string is simply a sequence of these characters, like "123+456". A formal language is a collection of such strings that are deemed well-formed according to a specific set of rules.
+
 In order to evaluate an arithmetic node, you need to know the numeric values of its subtrees, so you have to evaluate those first. That means working your way from the leaves up to the root—a post-order traversal. [Check here](#explanation)
 
 The formalism we used for defining the lexical grammar—the rules for how characters get grouped into tokens—was called a regular language. That was fine for our scanner, which emits a flat sequence of tokens. But regular languages aren’t powerful enough to handle expressions which can nest arbitrarily deeply.
 
-| Terminology        | Lexical Grammar  | Syntactic Grammar |
+| Terminology        | Lexical Grammar (Lexer)  | Syntactic Grammar (Parser) |
 |--------------------|-----------------|-------------------|
 | The “alphabet” is | Characters       | Tokens            |
 | A “string” is     | Lexeme or token  | Expression        |
@@ -109,7 +111,31 @@ Although Type-3 and Type-2 types of formal grammar are less powerful and use mor
 
 There are many different variations on Chomsky's classification of formal grammars (ex. **Tree-adjoining grammars** TAG increase the expressiveness of conventional generative grammars by allowing rewrite rules to operate on parse trees instead of just strings).
 
+### [AST Implementation](#abstract-syntax-tree-asts)
+An abstract syntax tree is a tree-shaped representation of formal grammar, convenient for compiler to operate.
 
+**Example:** An interpreter might represent an expression like **4 + 2 * 10 + 3 * (5 + 1)** using tree structure like this:
+
+<p align="center">
+  <img src="/misc/ast.svg" />
+</p>
+
+Syntax rules are important in this step! For example:
+6 / 3 - 1 can be parsed into a tree like (6/3) - 1 or 6 /(3-1). These two ways give different results. Because of this we have to introduce new rules:
+- **associativity**: tells which operator is executed first in the series of same operator:
+  - **left-associative**: (7 - 4 - 1);
+  - **right-associative**: a = b = c;
+- **precedence**: tells which operator has more power!
+
+We introduce same rules for associativity as in C programming language:
+
+| Name | Operators | Associates |
+|------|-----------|------------|
+| Equality | == !=       | left            |
+| Comparison |  	> >= < <=  | left        |
+| Term |  	- +    | left            |
+| Factor | / *    | left            |
+| Unary | ! -    | right            |
 
 ## References
 
@@ -119,6 +145,8 @@ There are many different variations on Chomsky's classification of formal gramma
 
 ### **Lexical Analysis:**
 - [Lexical Analysis - Wikipedia](https://en.wikipedia.org/wiki/Lexical_analysis)
+
+### **Syntax Analysis**
 - [PackCC: a parser generator for C - Github](https://github.com/arithy/packcc/blob/master/src/packcc.c)
 - [Parsing - Wikipedia](https://en.wikipedia.org/wiki/Parsing#Types_of_parsers)
 
@@ -130,13 +158,9 @@ There are many different variations on Chomsky's classification of formal gramma
 ### **Abstract Syntax Tree (ASTs):**
 - [Introduction to Binary Tree - GFG](https://www.geeksforgeeks.org/introduction-to-binary-tree/)
 - [Abstract Syntax Tree - Wikipedia](https://en.wikipedia.org/wiki/Abstract_syntax_tree)
+- [AST example in C - Keleshev](https://keleshev.com/abstract-syntax-tree-an-example-in-c/) 
 
 ### **About Interpreters:**
 - [Crafting Interpreters - Robert Nystorm](https://craftinginterpreters.com/contents.html)
 
-
-
-## Ideas:
-
-- [ ] Shift ASCII characters, example: a >> 1 == b... 
 
