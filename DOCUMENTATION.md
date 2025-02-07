@@ -17,8 +17,45 @@ Within this documentation, you will find detailed explanations of:
 ## 1. Syntax
 
 ### Operators
-
 The cash interpreting language supports a rich set of operators:
 &rarr;
 
+
 ### Reserved words
+
+### [Backus-Naur Form (BNF)](https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form)
+
+```BNF
+Rules:
+**********************************************
+<PROG>    ::=  <STMT>
+<STMT>    ::=  <EXPR>
+<EXPR>    ::=  <EQL>
+<EQL>     ::=  <CMPR> (( "!=" | "==" ) <CMPR> )*
+<CMPR>    ::=  <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
+<TERM>    ::=  <FACT> (( "-" | "+" ) <FACT> )*
+<FACT>    ::=  <UNRY> (( "/" | "*") <UNRY> )*
+<UNRY>    ::=  ( "!" | "-" ) <UNRY>
+              | <PRIM>
+<PRIM>    ::=  <NUM> | <STR> | "TRUE" | "FALSE" | "NULL"
+              | "(" <EXPR> ")"
+
+
+Syntax:
+**********************************************
+<NAME>    -> nonterminal
+"NAME"    -> terminal
+
+Scheme:
+**********************************************
+<PROG>    -> programm;
+<STMT>    -> statement;
+<EXPR>    -> expression;
+<EQL>     -> equality;
+<CMPR>    -> comparison;
+<TERM>    -> term;
+<FACT>    -> factor;
+<UNRY>    -> unary;
+<PRIM>    -> primary;
+
+``` 
