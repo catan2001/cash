@@ -37,7 +37,8 @@ SOFTWARE.
 /* Maximum size of the input line */
 #define MAX_SIZE 1000
 
-typedef enum 
+/* Enumerating type for defining token type */
+typedef enum value_t
 {
     /* Used to indicate failure: */
     FAILED_TO_CLASSIFY = 1, 
@@ -99,7 +100,8 @@ typedef enum
     EOF_TOKEN    // done
 } TokenType;
 
-typedef enum
+/* Enumerating type used for defining character type */
+typedef enum character_t
 {
     SPECIAL,
     QUOTES,
@@ -127,29 +129,53 @@ typedef struct token_s
 } Token;
 
 /* Structure used for classifying reserved words */
-typedef struct
+typedef struct reserved_word_map_t
 {
     const char *reserved_word;
     TokenType type;
 } ReservedWordMapType;
 
+/* Forward reference AST structure */
+typedef struct AST AST; 
+
+/* AST structure, previously forward referenced */
+struct AST 
+{
+    enum tag
+    {
+        AST_LITERAL,
+        AST_EXPR,
+        AST_BINARY,
+        AST_UNARY,
+        AST_GROUPING
+    } tag;
+    union 
+    {
+        Token *token;
+        struct AST_EXPR {AST *left; Token *token;} AST_EXPR;
+        struct AST_GROUPING {AST *left; Token *token;} AST_GROUPING;
+        struct AST_BINARY {AST *left; Token *token; AST *right;} AST_BINARY;
+        struct AST_UNARY {AST *right; Token *token;} AST_UNARY;
+    } data;
+};  
+
 /* Hash Map used for reserved words */
 static const ReservedWordMapType reserved_word_map[] = {
-    {"pwd", PWD},
-    {"exec", EXEC},
-    {"clear", CLEAR},
-    {"if", IF},
-    {"else", ELSE},
-    {"false", FALSE_TOKEN},
-    {"true", TRUE_TOKEN},
-    {"for", FOR},
-    {"while", WHILE},
-    {"null", NULL_TOKEN},
-    {"enum", ENUM_TOKEN},
-    {"var", VAR},
-    {"printf", PRINTF},
-    {"funct", FUNCT},
-    {"eof", EOF_TOKEN}
+    {"pwd",     PWD},
+    {"exec",    EXEC},
+    {"clear",   CLEAR},
+    {"if",      IF},
+    {"else",    ELSE},
+    {"false",   FALSE_TOKEN},
+    {"true",    TRUE_TOKEN},
+    {"for",     FOR},
+    {"while",   WHILE},
+    {"null",    NULL_TOKEN},
+    {"enum",    ENUM_TOKEN},
+    {"var",     VAR},
+    {"printf",  PRINTF},
+    {"funct",   FUNCT},
+    {"eof",     EOF_TOKEN}
 };
 
 static char pcmd[MAX_SIZE];
@@ -537,10 +563,279 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
     return ctoken;
 }
 
+/* Function that creates ASTs */
+static AST *ast_new(AST ast)
+{
+    AST *ast_ptr = malloc(sizeof(AST));
+    if(ast_ptr) *ast_ptr = ast;
+    else
+        fprintf(stderr, "error: ast_new failed to allocate memory!\n");
+    return ast_ptr;
+}
+
+/* Function that prints ASTs */
+static void ast_print(AST *ast)
+{
+    switch(ast->tag)
+    {
+        case AST_BINARY:
+            ast_print(ast->data.AST_BINARY.left);
+            ast_print(ast->data.AST_BINARY.right);
+            fprintf(stdout, "Binary Node: %s\n", ast->data.AST_BINARY.token->lexeme);
+            break;
+        case AST_UNARY:
+            ast_print(ast->data.AST_UNARY.right);
+            fprintf(stdout, "Unary Node: %s\n", ast->data.AST_UNARY.token->lexeme);
+            break;
+        case AST_LITERAL:
+            fprintf(stdout, "Literal Node: %s\n", ast->data.token->lexeme);
+            break;
+        default:
+            fprintf(stderr, "Error! Cannot print AST node: %s\n", ast->data.token->lexeme);
+            break;
+    }
+}
+
+/* Function that deletes AST from current node down */
+static void ast_free(AST *ast)
+{
+    switch(ast->tag)
+    {
+        case AST_EXPR: 
+        {
+            ast_free(ast->data.AST_EXPR.left);
+            break;
+        }   
+        case AST_BINARY: 
+        {
+            ast_free(ast->data.AST_BINARY.left);
+            ast_free(ast->data.AST_BINARY.right);
+            break;
+        }
+        case AST_UNARY: 
+        {
+            ast_free(ast->data.AST_UNARY.right);
+            break;
+        }
+        case AST_GROUPING:
+        {
+            ast_free(ast->data.AST_GROUPING.left);
+            break;
+        }
+        default:
+            break;
+    }
+    free(ast);
+}
+
+/* Function declaration of EXPR rule */
+static AST *expression(Token *, size_t *, AST *, const size_t );
+
+/* Function that implements PRIM rule of grammar */
+static AST *primary(Token *token_list, size_t *token_position, AST *ast, const size_t number_of_tokens)
+{
+    if(*token_position > number_of_tokens) return ast;
+    switch(token_list[*token_position].type)
+    {
+        case NUMBER:
+        case STRING:
+        case TRUE_TOKEN:
+        case FALSE_TOKEN:
+        case NULL_TOKEN:
+        {
+            ast = ast_new((AST)
+                {
+                    .tag = AST_LITERAL,
+                    .data.token = &token_list[*token_position]
+                }
+            );
+        }
+        default:
+            return ast;
+    }
+    if(token_list[*token_position].type == LEFT_PARENTHESIS) 
+    {
+        *token_position++;
+        ast = expression(token_list, token_position, ast, number_of_tokens);
+        if(token_list[*token_position].type == RIGHT_PARENTHESIS)
+            return ast;
+        else
+        {
+            fprintf(stderr, "ERROR: TODO FINISH ERRORS\n");
+        }
+    }
+    return NULL;
+}
+
+/* Function that implements UNRY rule of grammar */
+static AST *unary(Token *token_list, size_t *token_position, AST *ast, const size_t number_of_tokens)
+{
+    if(*token_position > number_of_tokens) return ast;
+    if(token_list[*token_position].type == SUBTRACT ||
+       token_list[*token_position].type == EXCLAMATION)
+    {
+        Token *operator = &token_list[*token_position++];
+        AST *right = unary(token_list, token_position, ast, number_of_tokens);
+        ast = ast_new((AST)
+            {
+                .tag = AST_UNARY,
+                .data.AST_UNARY = {
+                    right,
+                    &token_list[*token_position],
+                }
+            }
+        );
+        return ast;
+    }
+    
+    ast = primary(token_list, token_position, ast, number_of_tokens);
+    *token_position++;
+    return ast;
+}
+
+/* Function that implements FACT rule of grammar */
+static AST *factor(Token *token_list, size_t *token_position, AST *ast, const size_t number_of_tokens)
+{
+    printf("Hi8\n");
+    ast = unary(token_list, token_position, ast, number_of_tokens);
+    *token_position++; // Check if correct!
+    printf("Hi9\n");
+    if(*token_position > number_of_tokens) return ast;
+    
+    while(token_list[*token_position].type == DIVIDE  ||
+          token_list[*token_position].type == MULTIPLY)
+    {
+        Token *operator = &token_list[*token_position++];
+        AST *right = unary(token_list, token_position, ast, number_of_tokens);
+        ast = ast_new((AST)
+            {
+                .tag = AST_BINARY,
+                .data.AST_BINARY = {
+                    ast,
+                    &token_list[*token_position],
+                    right
+                }
+            }
+        );
+    }
+
+    return ast;
+}
+
+/* Function that implements TERM rule of grammar */
+static AST *term(Token *token_list, size_t *token_position, AST *ast, const size_t number_of_tokens)
+{
+    printf("Hi6\n");
+    ast = factor(token_list, token_position, ast, number_of_tokens);
+    *token_position++; // Check if correct!
+    if(*token_position > number_of_tokens) return ast;
+
+    printf("Hi7\n");
+    while(token_list[*token_position].type == ADD ||
+          token_list[*token_position].type == SUBTRACT)
+    {
+        Token *operator = &token_list[*token_position++];
+        AST *right = factor(token_list, token_position, ast, number_of_tokens);
+        ast = ast_new((AST)
+            {
+                .tag = AST_BINARY,
+                .data.AST_BINARY = {
+                    ast,
+                    &token_list[*token_position],
+                    right
+                }
+            }
+        );
+    }
+
+    return ast;
+}
+
+/* Function that implements CMPR rule of grammar */
+static AST *comparison(Token *token_list, size_t *token_position, AST *ast, const size_t number_of_tokens)
+{
+    printf("Hi4\n");
+    ast = term(token_list, token_position, ast, number_of_tokens);
+    *token_position++; // Check if correct!
+    if(*token_position > number_of_tokens) return ast;
+    printf("Hi5\n");
+    while(token_list[*token_position].type == REDIRECTION_LEFT_LESS_RELATIONAL ||
+          token_list[*token_position].type == LESS_EQUAL ||
+          token_list[*token_position].type == REDIRECTION_RIGHT_GREATER_RELATIONAL ||
+          token_list[*token_position].type == GREATER_EQUAL)
+    {
+        Token *operator = &token_list[*token_position++];
+        AST *right = term(token_list, token_position, ast, number_of_tokens);
+        ast = ast_new((AST)
+            {
+                .tag = AST_BINARY,
+                .data.AST_BINARY = {
+                    ast,
+                    &token_list[*token_position],
+                    right
+                }
+            }
+        );
+    }
+
+    return ast;
+}
+
+/* Function that implements EQL rule of grammar */
+static AST *equality(Token *token_list, size_t *token_position, AST *ast, const size_t number_of_tokens)
+{
+    printf("Hi3\n");
+    ast = comparison(token_list, token_position, ast, number_of_tokens);
+    *token_position++; // Check if correct!
+    if(*token_position > number_of_tokens) return ast;
+    
+    // TODO:add when end
+    while(token_list[*token_position].type == EXCLAMATION_EQUEAL ||
+          token_list[*token_position].type == DOUBLE_EQUAL)
+    {
+        Token *operator = &token_list[*token_position++];
+        AST *right = comparison(token_list, token_position, ast, number_of_tokens);
+        ast = ast_new((AST)
+            {
+                .tag = AST_BINARY,
+                .data.AST_BINARY = {
+                    ast,
+                    &token_list[*token_position],
+                    right
+                }
+            }
+        );
+    }
+    printf("Hi3\n");
+    return ast;
+}
+
+/* Function that implements EXPR rule of grammar */
+static AST *expression(Token *token_list, size_t *token_position, AST *ast, const size_t number_of_tokens)
+{
+    printf("Hi2\n");
+    return equality(token_list, token_position, ast, number_of_tokens);
+}
+
+/* Function that implements STAT rule of grammar */
+static AST *statement(Token *token_list, size_t *token_position, const size_t number_of_tokens)
+{
+    AST *ast;
+    printf("Hi1\n");
+    return expression(token_list, token_position, ast, number_of_tokens);
+}
+
+/* Function that parses tokens into AST using grammar rules*/
+static AST *parser(Token *token_list, const size_t number_of_tokens) 
+{
+    size_t token_position = 0;
+    return statement(token_list, &token_position, number_of_tokens);
+}
+
 // TODO: ./execution does not work
 static void exec(char *cmd)
 {
-    int len;
+    size_t len;
     if (cmd[0] == '.' && cmd[1] == '.')
     {
         len = strlen(cmd + 2); // for some reason it's not NULL terminated...
@@ -561,6 +856,39 @@ int main(void)
     /*Clear the terminal at start*/
     clear_terminal();
 
+    Token tok1, tok2, tok3;
+    tok1.lexeme = "4";
+    tok1.type = NUMBER;
+
+    tok2.lexeme = "+";
+    tok2.type = ADD;
+
+    tok3.lexeme = "5";
+    tok3.type = NUMBER;
+
+    AST *ast = ast_new((AST)
+        {
+            .tag = AST_BINARY,
+            .data.AST_BINARY = {
+                .left = ast_new((AST)
+                    {
+                        .tag = AST_LITERAL,
+                        .data.token = &tok1,
+                    }
+                ),
+                .token = &tok2,
+                .right = ast_new((AST)
+                    {
+                        .tag = AST_LITERAL,
+                        .data.token = &tok3,
+                    }
+                )
+            }
+        }
+    );
+
+    ast_print(ast);
+
     while (TRUE)
     {
         char **tokens;
@@ -572,6 +900,8 @@ int main(void)
         if (tokens != NULL)
         {
             Token *ctox = token_classifier(tokens, number_of_tokens, &number_of_ctokens);
+            ast = parser(ctox, number_of_ctokens);
+            ast_print(ast);
             // exec(pcmd);
             // Deallocate Heap memory
             for (size_t i = 0; i < number_of_tokens; ++i) {
