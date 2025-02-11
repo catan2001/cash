@@ -137,6 +137,32 @@ We introduce same rules for associativity as in C programming language:
 | Factor | / *    | left            |
 | Unary | ! -    | right            |
 
+### [Error Detection and Recovery](#error-detection-and-recovery-1)
+
+An error is a user-initiated action that results in a program's abnormal behavior or issues. It is critical to recovering these errors as quickly as possible because if they are not retrieved in a timely manner, they will lead to a situation from which it will be extremely difficult to recover.
+
+Error handling process is very important step in implementation of compiler/interpreter. There are three steps each handler has to to:
+- 1. Error Detection.
+- 2. Error Reporting
+- 3. Error Handling
+
+Error recovery is a process of parser responding to an error while minimizing negative effects on the rest of process. To recover from an error a parser first has to detect an error. 
+
+There are four types of errors that can be caught in different stages of parser:
+- 1. Lexical Error: When some identifier is misspelled or unused character is found.
+- 2. Syntactical Error: When there is a syntax that was badly written.
+- 3. Semantical Error: Incompatible type was used for ex.
+- 4. Logical Error: Infinite loop was detected.
+
+There are multiple types of error recovery and all of them relly on different trade-off. Following this, there are three kinds of error recovery that can be implemented in the parser to deal with the errors in the code:
+- 1. Panic mode: It is the easiest way to error recovery preventing parser to develop infinite loops.
+- 2. Statement mode: When the parser encounters an error it tries to add that particle of error virtually keeping in the box that also one wrong correction can result in the infinite loop.
+- 3. Global correction mode: The parsers tries to consider whole input file and decides what went wrong and what could replace the error.
+- 4. Pharse-level mode: It performs local correction on the remaining input.
+
+Of all therecovery techniques devised in yesteryear, the one that best stood the test of time is called—somewhat alarmingly—panic mode.
+
+
 ## References
 
 ### **About Shell:**
@@ -159,6 +185,10 @@ We introduce same rules for associativity as in C programming language:
 - [Introduction to Binary Tree - GFG](https://www.geeksforgeeks.org/introduction-to-binary-tree/)
 - [Abstract Syntax Tree - Wikipedia](https://en.wikipedia.org/wiki/Abstract_syntax_tree)
 - [AST example in C - Keleshev](https://keleshev.com/abstract-syntax-tree-an-example-in-c/) 
+
+### **Error Detection and Recovery:**
+- [What is Error recovery - GFG](https://www.geeksforgeeks.org/what-is-error-recovery/)
+- [Error recovery and Handling - naukri](https://www.naukri.com/code360/library/error-recovery-and-handling)
 
 ### **About Interpreters:**
 - [Crafting Interpreters - Robert Nystorm](https://craftinginterpreters.com/contents.html)
