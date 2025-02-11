@@ -32,14 +32,17 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 ### 29.1.2025.
 - [x] manage unused characters
 
-### 7.2.2025.
-- [ ] Helper functions for AST
-- [ ] ASTs builder and representing code
-- [ ] ASTs print function for debug
-- [ ] Define Rules for grammar of cash
+### 9.2.2025.
+- [x] Helper functions for AST
+- [x] ASTs builder and representing code
+- [x] ASTs print function for debug
+- [x] Define Rules for grammar of cash
+
+### 11.2.2025.
+- [x] Fixed Seg Faulting
+- [ ] Error handling function
 - [ ] Combine tokenization and classification into one function Scanner/Lexer
 - [ ] Encapsulate number abstract type for print
-- [ ] Error handling function
 
 ## Ideas
 - [ ] Instead of having lexer -> parser -> execution. 
