@@ -125,7 +125,7 @@ typedef struct token_s
     TokenType type;
     char *lexeme;
     Value literal;
-    // int line_number; // Add this after implementing error correction
+    int line_number; // Add this after implementing error correction
 } Token;
 
 /* Structure used for classifying reserved words */
@@ -194,14 +194,13 @@ static void sigint_handler(const int sig)
 // TODO: implement ErrorReporter
 /*@error
 **Function: Prints error to prompt*/
-static int error(char *msg)
+static int error(char *msg) 
 {
     if (isatty(fileno(stdin)))
     {
         fprintf(stderr, msg);
         return EXIT_SUCCESS;
     }
-
     fprintf(stderr, "Could not output to terminal, file descriptor %d", fileno(stdin));
     return EXIT_FAILURE;
 }
@@ -427,7 +426,7 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
 
     /*Reinitialize token count back to zero*/
     *token_cnt = 0;
-
+    
     for (size_t i = 0; cmd[i]; ++i)
     {
         switch (type_of_character(cmd[i]))
@@ -518,7 +517,7 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
         return NULL;
 
     /*Allocate number of tokens as ctoken*/
-    Token *ctoken = (Token *)malloc(sizeof(Token) * number_of_tokens);
+    Token *ctoken = (Token *)malloc(sizeof(Token) * (number_of_tokens+1));
     if (ctoken == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for ctoken!");
@@ -553,8 +552,13 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
             return NULL;
         }
     }
-    *number_of_ctokens = number_of_tokens;
-    for (int i = 0; i < number_of_tokens; ++i)
+
+    /* Add EOF token at the end */
+    *number_of_ctokens = number_of_tokens+1;
+    ctoken[number_of_tokens].lexeme = NULL;
+    ctoken[number_of_tokens].type = EOF_TOKEN;
+
+    for (int i = 0; i < number_of_tokens+1; ++i)
     {
         printf("TOKEN: ");
         print_term(ctoken[i].lexeme);
@@ -565,15 +569,15 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
 
 /* Parser part of code */
 
-static int next_position(size_t *current_position, size_t max_size)
+/* Helper function for returning next iteration of token_list */
+static int next_position(size_t *current_position, Token *token_list)
 {
-    if(*current_position < max_size - 1)
-    {
-        (*current_position)++;
-        printf("Current position %d\n", (*current_position));
-        return 0;
-    }
-    return 1;
+    if(token_list[*current_position+1].type == EOF_TOKEN)
+        return 1;
+        
+    (*current_position)++;
+    printf("Current position %d\n", (*current_position));
+    return 0;
 }
 
 /* Function that creates ASTs */
@@ -594,6 +598,7 @@ static void ast_print(AST *ast)
         fprintf(stderr, "Error! AST IS NULL!\n");
         return;
     }
+
     switch(ast->tag)
     {
         case AST_BINARY:
@@ -651,13 +656,21 @@ static void ast_free(AST *ast)
     free(ast);
 }
 
+static void parser_error(Token token, char *msg)
+{
+    if(token.type == EOF_TOKEN)
+        fprintf(stderr, "Error line: %d at end %s\n", token.line_number, msg);
+    else
+        fprintf(stderr, "Error line: %d at '%s', %s\n", token.line_number, token.lexeme, msg);
+}
+
 /* Function declaration of EXPR rule */
-static AST *expression(Token *, size_t *, const size_t, AST *);
+static AST *expression(Token *, size_t *, AST *);
 
 /* Function that implements PRIM rule of grammar */
-static AST *primary(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *primary(Token *token_list, size_t *token_position, AST *ast)
 {
-    switch(token_list[*token_position].type)
+    switch (token_list[*token_position].type)
     {
         case NUMBER:
         case STRING:
@@ -665,42 +678,45 @@ static AST *primary(Token *token_list, size_t *token_position, const size_t numb
         case FALSE_TOKEN:
         case NULL_TOKEN:
         {
-            ast = ast_new((AST)
-                {
-                    .tag = AST_LITERAL,
-                    .data.token = &token_list[*token_position]
-                }
-            );
-                if(next_position(token_position, number_of_tokens)) return ast; // 1
+            ast = ast_new((AST){
+                .tag = AST_LITERAL,
+                .data.token = &token_list[*token_position]});
+            next_position(token_position, token_list);
             return ast;
+        }
+        case LEFT_PARENTHESIS:
+        {
+            if (next_position(token_position, token_list)) {
+                parser_error(token_list[*token_position], "Unclosed paranthesis");
+                break;  
+            }
+            ast = expression(token_list, token_position, ast);
+            if (token_list[*token_position].type == RIGHT_PARENTHESIS)
+            {
+                next_position(token_position, token_list);
+                return ast;
+            }
         }
         default:
             break;
     }
-    if(token_list[*token_position].type == LEFT_PARENTHESIS) 
-    {
-        if(next_position(token_position, number_of_tokens)) return ast;
-        ast = expression(token_list, token_position, number_of_tokens, ast);
-        if(token_list[*token_position].type == RIGHT_PARENTHESIS) 
-        {
-            next_position(token_position, number_of_tokens);
-            return ast;
-        }
-    
-        fprintf(stderr, "ERROR: TODO FINISH ERRORS\n");
-    }
+    parser_error(token_list[*token_position], "could not parse such token. Expect expression.");
+    /*Implement Synchronizer to statement*/
     return NULL;
 }
 
 /* Function that implements UNRY rule of grammar */
-static AST *unary(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *unary(Token *token_list, size_t *token_position, AST *ast)
 {
     if(token_list[*token_position].type == SUBTRACT ||
        token_list[*token_position].type == EXCLAMATION)
     {
         Token *operator = &token_list[*token_position];
-        if(next_position(token_position, number_of_tokens)) return ast;
-        AST *right = unary(token_list, token_position, number_of_tokens, ast);
+        if(next_position(token_position, token_list)) {
+            parser_error(*operator, "Missing right operator!\n");
+            return ast; 
+        }
+        AST *right = unary(token_list, token_position, ast);
         ast = ast_new((AST)
             {
                 .tag = AST_UNARY,
@@ -713,21 +729,23 @@ static AST *unary(Token *token_list, size_t *token_position, const size_t number
         return ast;
     }
     
-    ast = primary(token_list, token_position, number_of_tokens, ast);
-    return ast;
+    return primary(token_list, token_position, ast);
 }
 
 /* Function that implements FACT rule of grammar */
-static AST *factor(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *factor(Token *token_list, size_t *token_position, AST *ast)
 {
-    ast = unary(token_list, token_position, number_of_tokens, ast);
+    ast = unary(token_list, token_position, ast);
     
     while(token_list[*token_position].type == DIVIDE  ||
           token_list[*token_position].type == MULTIPLY)
     {
         Token *operator = &token_list[*token_position];
-        if(next_position(token_position, number_of_tokens)) return ast;
-        AST *right = unary(token_list, token_position, number_of_tokens, ast);
+        if(next_position(token_position, token_list)) {
+            parser_error(*operator, "Missing right operator!\n");
+            return ast; 
+        }
+        AST *right = unary(token_list, token_position, ast);
         ast = ast_new((AST)
             {
                 .tag = AST_BINARY,
@@ -743,16 +761,19 @@ static AST *factor(Token *token_list, size_t *token_position, const size_t numbe
 }
 
 /* Function that implements TERM rule of grammar */
-static AST *term(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *term(Token *token_list, size_t *token_position, AST *ast)
 {
-    ast = factor(token_list, token_position, number_of_tokens, ast);
+    ast = factor(token_list, token_position, ast);
 
     while(token_list[*token_position].type == ADD ||
           token_list[*token_position].type == SUBTRACT)
     {   
         Token *operator = &token_list[*token_position];
-        if(next_position(token_position, number_of_tokens)) return ast;
-        AST *right = factor(token_list, token_position, number_of_tokens, ast);
+        if(next_position(token_position, token_list)) {
+            parser_error(*operator, "Missing right operator!\n");
+            return ast; 
+        }
+        AST *right = factor(token_list, token_position, ast);
         ast = ast_new((AST)
             {
                 .tag = AST_BINARY,
@@ -768,9 +789,9 @@ static AST *term(Token *token_list, size_t *token_position, const size_t number_
 }
 
 /* Function that implements CMPR rule of grammar */
-static AST *comparison(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
 {
-    ast = term(token_list, token_position, number_of_tokens, ast);
+    ast = term(token_list, token_position, ast);
 
     while(token_list[*token_position].type == REDIRECTION_LEFT_LESS_RELATIONAL ||
           token_list[*token_position].type == LESS_EQUAL ||
@@ -778,8 +799,8 @@ static AST *comparison(Token *token_list, size_t *token_position, const size_t n
           token_list[*token_position].type == GREATER_EQUAL)
     {
         Token *operator = &token_list[*token_position];
-        if(next_position(token_position, number_of_tokens)) return ast;
-        AST *right = term(token_list, token_position, number_of_tokens, ast);
+        next_position(token_position, token_list);
+        AST *right = term(token_list, token_position, ast);
         ast = ast_new((AST)
             {
                 .tag = AST_BINARY,
@@ -796,16 +817,16 @@ static AST *comparison(Token *token_list, size_t *token_position, const size_t n
 }
 
 /* Function that implements EQL rule of grammar */
-static AST *equality(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *equality(Token *token_list, size_t *token_position, AST *ast)
 {
-    ast = comparison(token_list, token_position, number_of_tokens, ast);
+    ast = comparison(token_list, token_position, ast);
     
     while(token_list[*token_position].type == EXCLAMATION_EQUEAL ||
           token_list[*token_position].type == DOUBLE_EQUAL)
     {
         Token *operator = &token_list[*token_position];
-        if(next_position(token_position, number_of_tokens)) return ast;
-        AST *right = comparison(token_list, token_position, number_of_tokens, ast);
+        if(next_position(token_position, token_list)) return ast;
+        AST *right = comparison(token_list, token_position, ast);
         ast = ast_new((AST)
             {
                 .tag = AST_BINARY,
@@ -822,23 +843,23 @@ static AST *equality(Token *token_list, size_t *token_position, const size_t num
 }
 
 /* Function that implements EXPR rule of grammar */
-static AST *expression(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *expression(Token *token_list, size_t *token_position, AST *ast)
 {
-    return equality(token_list, token_position, number_of_tokens, ast);
+    return equality(token_list, token_position, ast);
 }
 
 /* Function that implements STAT rule of grammar */
-static AST *statement(Token *token_list, size_t *token_position, const size_t number_of_tokens, AST *ast)
+static AST *statement(Token *token_list, size_t *token_position, AST *ast)
 {
-    return expression(token_list, token_position, number_of_tokens, ast);
+    return expression(token_list, token_position, ast);
 }
 
 /* Function that parses tokens into AST using grammar rules*/
-static AST *parser(Token *token_list, const size_t number_of_tokens) 
+static AST *parser(Token *token_list) 
 {
     size_t token_position = 0;
     AST *ast;
-    return statement(token_list, &token_position, number_of_tokens, ast);
+    return statement(token_list, &token_position, ast);
 }
 
 // TODO: ./execution does not work
@@ -877,20 +898,24 @@ int main(void)
         if (tokens != NULL)
         {
             Token *ctox = token_classifier(tokens, number_of_tokens, &number_of_ctokens);
-            ast = parser(ctox, number_of_ctokens);
-            ast_print(ast);
-            ast_free(ast);
+            ast = parser(ctox);
+            if(ast){
+                ast_print(ast);
+                ast_free(ast); 
+            }
             // exec(pcmd);
             // Deallocate Heap memory
+
             for (size_t i = 0; i < number_of_tokens; ++i) {
                 free(tokens[i]);
             }
             free(tokens);
-            for (size_t i = 0; i < number_of_ctokens; ++i)
+            for (size_t i = 0; ctox[i].type != EOF_TOKEN; ++i) {
                 free(ctox[i].lexeme);
+            }
             free(ctox);
         }
         wait(NULL);
-    }
+    } 
     return 0;
 }
