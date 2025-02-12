@@ -162,6 +162,14 @@ There are multiple types of error recovery and all of them relly on different tr
 
 Of all therecovery techniques devised in yesteryear, the one that best stood the test of time is called—somewhat alarmingly—panic mode.
 
+**Synchronization**
+
+When the parser encounters an unexpected token (i.e. one that doesn’t fit the grammar rule being processed), it cannot continue normal parsing because its internal state is no longer aligned with the expected structure. To recover, the parser “synchronizes” by discarding tokens until it reaches a token from a predetermined set—the synchronization set. This set is chosen because the tokens within it mark points where the input is likely to be “in sync” with the grammar.
+
+A synchronization token is typically one that indicates the beginning of a new statement or expression. For instance, in languages like C or Java, a semicolon often marks the end of a statement. When an error occurs, the parser might discard tokens until it sees a semicolon, then assume that the next token starts a new statement. In other languages (or in interactive settings), a newline may serve this role.
+
+More formally, many parser generators use the concept of the FOLLOW set of a nonterminal. The FOLLOW set of a nonterminal consists of all terminal symbols that can legally appear immediately after that nonterminal in some derivation. Using the FOLLOW set helps the parser determine safe tokens at which it can resume parsing after skipping over erroneous input.
+
 
 ## References
 
