@@ -1,6 +1,11 @@
 # Documentation for cash interpreter
 Welcome to the official documentation for the **cash interpreter**. This document serves as a comprehensive guide to understanding the features, capabilities, and design principles of the interpreter. 
 
+> [!WARNING]
+> The Interpreter is not in usable state yet.
+
+Implementation is in GNU C.
+
 Within this documentation, you will find detailed explanations of:
 
 - The syntax and semantics of the cash interpreter
