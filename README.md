@@ -7,6 +7,9 @@
 ---
 Simple shell implementation in C for Linux. **Cash** is a learning project designed to explore the inner workings of Bash (or any other shell). The goal is to implement a few fundamental features of Bash, offering a hands-on understanding of shell functionality.
 
+> [!WARNING]
+> The Interpreter is not in usable state yet. Work in progress!
+
 ## Introduction
 **Cash** is a learning project designed to explore the inner workings of Bash (or any other shell). The goal is to implement a few fundamental features of Bash, offering a hands-on understanding of shell functionality. This project is intended solely for educational and tutorial purposes.
 
