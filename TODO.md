@@ -43,11 +43,12 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Error AST print
 - [x] Wired-up Parser
 
-### FUTURE
-- [ ] Error handling function
-- [ ] Synchronization 
+### 14.2.2025.
+- [x] Error handling function
+- [x] Synchronization 
+- [x] Add class and struct keywords to parser
 - [ ] Create Coroutine for synchronization
-- [ ] Evaluation of AST
+- [ ] Semantic evaluation of AST
 - [ ] Combine tokenization and classification into one function Scanner/Lexer
 - [ ] Encapsulate number abstract type for print
 
