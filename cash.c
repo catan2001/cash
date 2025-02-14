@@ -29,75 +29,86 @@ SOFTWARE.
 #include <sys/wait.h>
 #include <assert.h>
 #include <signal.h>
+#include <setjmp.h>
 
 #define TRUE 1
 #define FALSE 0
 #define ERROR -1
 
 /* Maximum size of the input line */
-#define MAX_SIZE 1000
+#define MAX_LINE_SIZE 1000
+
+// TsodingDaily <3
+#define TODO(msg) do {                                              \
+        fprintf(stderr, "%s:%d TODO: %s\n", __FILE__, __LINE__, msg); \
+        abort();                                                    \
+    } while(0)
+
+static jmp_buf sync_env;
 
 /* Enumerating type for defining token type */
 typedef enum value_t
 {
     /* Used to indicate failure: */
     FAILED_TO_CLASSIFY = 1, 
-    
+   
     /* Single character special token: */
-    EXCLAMATION = '!',
-    COMMENT = '#',
-    MODULUS = '%',
-    AND = '&',
-    LEFT_PARENTHESIS = '(',
-    RIGHT_PARENTHESIS = ')',
-    MULTIPLY = '*',
-    ADD = '+',
-    COMMA = ',',
-    SUBTRACT = '-',
-    DOT = '.',
-    DIVIDE = '/',
-    SEMICOLON = ';',
-    REDIRECTION_LEFT_LESS_RELATIONAL = '<',
-    EQUAL = '=',
-    REDIRECTION_RIGHT_GREATER_RELATIONAL = '>',
-    LEFT_BRACE = '{',
-    PIPE = '|',
-    RIGHT_BRACE = '}',
-    XOR = '~',
+    EXCLAMATION                             = '!',
+    COMMENT                                 = '#',
+    MODULUS                                 = '%',
+    AND                                     = '&',
+    LEFT_PARENTHESIS                        = '(',
+    RIGHT_PARENTHESIS                       = ')',
+    MULTIPLY                                = '*',
+    ADD                                     = '+',
+    COMMA                                   = ',',
+    SUBTRACT                                = '-',
+    DOT                                     = '.',
+    DIVIDE                                  = '/',
+    SEMICOLON                               = ';',
+    REDIRECTION_LEFT_LESS_RELATIONAL        = '<',
+    EQUAL                                   = '=',
+    REDIRECTION_RIGHT_GREATER_RELATIONAL    = '>',
+    LEFT_BRACE                              = '{',
+    PIPE                                    = '|',
+    RIGHT_BRACE                             = '}',
+    XOR                                     = '~',
 
 
     /* Two character special token: */
-    EXCLAMATION_EQUEAL, // done
-    DOUBLE_EQUAL,       // done
-    GREATER_EQUAL,      // done
-    LESS_EQUAL,         // done
-    SHIFT_LEFT,         // done
-    SHIFT_RIGHT,        // done
+    EXCLAMATION_EQUEAL, 
+    DOUBLE_EQUAL,       
+    GREATER_EQUAL,       
+    LESS_EQUAL,          
+    SHIFT_LEFT,          
+    SHIFT_RIGHT,         
 
     /* Literals: */
-    IDENTIFIER,         // done
+    IDENTIFIER,          
     STRING,
     NUMBER,
 
     /* Commands: */
-    EXEC,  // done
-    PWD,   // done
-    CLEAR, // done
+    EXEC,   
+    PWD,    
+    CLEAR,  
     TIME,
 
     /* Reserved Words: */
-    IF,          // done
-    ELSE,        // done
-    FALSE_TOKEN, // done
-    TRUE_TOKEN,  // done
-    FOR,         // done
-    WHILE,       // done
-    NULL_TOKEN,  // done
-    ENUM_TOKEN,  // done
-    VAR,         // done
-    PRINTF,      // done
-    FUNCT,       // done
-    EOF_TOKEN    // done
+    IF,           
+    ELSE,         
+    FALSE_TOKEN,  
+    TRUE_TOKEN,   
+    FOR,          
+    WHILE,        
+    NULL_TOKEN,   
+    ENUM_TOKEN,   
+    VAR,          
+    PRINTF,       
+    FUNCT,
+    STRUCT,
+    CLASS,        
+    EOF_TOKEN     
 } TokenType;
 
 /* Enumerating type used for defining character type */
@@ -175,10 +186,12 @@ static const ReservedWordMapType reserved_word_map[] = {
     {"var",     VAR},
     {"printf",  PRINTF},
     {"funct",   FUNCT},
+    {"class",   CLASS},
+    {"struct",  STRUCT},
     {"eof",     EOF_TOKEN}
 };
 
-static char pcmd[MAX_SIZE];
+static char pcmd[MAX_LINE_SIZE];
 
 /*@sigint_handler
 **Function: Signal handler function for SIGINT*/
@@ -398,7 +411,7 @@ static TokenType classify_number(const char *token, Token *ctoken)
 static TokenType classify_reserved_words(const char *token, Token *ctoken)
 {
     /* Initialize lexeme and literal value to NULL*/
-    ctoken->lexeme = NULL;
+    ctoken->lexeme = strdup(token);
     ctoken->literal.char_value = NULL;
 
     for (size_t i = 0; i < sizeof(reserved_word_map) / sizeof(reserved_word_map[0]); i++) {
@@ -656,6 +669,40 @@ static void ast_free(AST *ast)
     free(ast);
 }
 
+/* Helper function for synchronization when parser enters Panic Mode */
+static void synchronize(Token *token_list, size_t *token_position)
+{
+    while(!next_position(token_position, token_list))
+    {
+       switch(token_list[*token_position].type)
+        {
+            case SEMICOLON:
+            case FUNCT:
+            case CLASS:
+            case STRUCT:
+            case VAR:
+            case FOR:
+            case IF:
+            case WHILE:
+            case PRINTF:
+            case EXEC:
+            case PWD:
+            case TIME:
+                return;
+        } 
+    }
+    // set token_position to EOF_TOKEN
+    (*token_position)++;
+}
+
+/* Function that is called when error happens */
+static void panic_mode(Token *token_list, size_t *token_position)
+{
+    synchronize(token_list, token_position);
+    // Jump back to sync_env
+    longjmp(sync_env, 1);
+}
+
 static void parser_error(Token token, char *msg)
 {
     if(token.type == EOF_TOKEN)
@@ -688,6 +735,7 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
         {
             if (next_position(token_position, token_list)) {
                 parser_error(token_list[*token_position], "Unclosed paranthesis");
+                longjmp(sync_env, 1);
                 break;  
             }
             ast = expression(token_list, token_position, ast);
@@ -701,7 +749,7 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
             break;
     }
     parser_error(token_list[*token_position], "could not parse such token. Expect expression.");
-    /*Implement Synchronizer to statement*/
+    panic_mode(token_list, token_position);
     return NULL;
 }
 
@@ -714,6 +762,7 @@ static AST *unary(Token *token_list, size_t *token_position, AST *ast)
         Token *operator = &token_list[*token_position];
         if(next_position(token_position, token_list)) {
             parser_error(*operator, "Missing right operator!\n");
+            panic_mode(token_list, token_position);
             return ast; 
         }
         AST *right = unary(token_list, token_position, ast);
@@ -743,6 +792,7 @@ static AST *factor(Token *token_list, size_t *token_position, AST *ast)
         Token *operator = &token_list[*token_position];
         if(next_position(token_position, token_list)) {
             parser_error(*operator, "Missing right operator!\n");
+            panic_mode(token_list, token_position);
             return ast; 
         }
         AST *right = unary(token_list, token_position, ast);
@@ -771,6 +821,7 @@ static AST *term(Token *token_list, size_t *token_position, AST *ast)
         Token *operator = &token_list[*token_position];
         if(next_position(token_position, token_list)) {
             parser_error(*operator, "Missing right operator!\n");
+            panic_mode(token_list, token_position);
             return ast; 
         }
         AST *right = factor(token_list, token_position, ast);
@@ -799,7 +850,11 @@ static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
           token_list[*token_position].type == GREATER_EQUAL)
     {
         Token *operator = &token_list[*token_position];
-        next_position(token_position, token_list);
+        if(next_position(token_position, token_list)) {
+            parser_error(*operator, "Missing right operator!\n");
+            panic_mode(token_list, token_position);
+            return ast; 
+        }        
         AST *right = term(token_list, token_position, ast);
         ast = ast_new((AST)
             {
@@ -825,7 +880,11 @@ static AST *equality(Token *token_list, size_t *token_position, AST *ast)
           token_list[*token_position].type == DOUBLE_EQUAL)
     {
         Token *operator = &token_list[*token_position];
-        if(next_position(token_position, token_list)) return ast;
+        if(next_position(token_position, token_list)) {
+            parser_error(*operator, "Missing right operator!\n");
+            panic_mode(token_list, token_position);
+            return ast; 
+        }         
         AST *right = comparison(token_list, token_position, ast);
         ast = ast_new((AST)
             {
@@ -851,14 +910,18 @@ static AST *expression(Token *token_list, size_t *token_position, AST *ast)
 /* Function that implements STAT rule of grammar */
 static AST *statement(Token *token_list, size_t *token_position, AST *ast)
 {
-    return expression(token_list, token_position, ast);
+    if(!setjmp(sync_env))
+        fprintf(stdout, "Setjmp!\n");
+
+    token_list[*token_position].type == EOF_TOKEN ?
+        ast : expression(token_list, token_position, ast); 
 }
 
 /* Function that parses tokens into AST using grammar rules*/
 static AST *parser(Token *token_list) 
 {
     size_t token_position = 0;
-    AST *ast;
+    AST *ast = NULL;
     return statement(token_list, &token_position, ast);
 }
 
@@ -885,7 +948,7 @@ int main(void)
 
     /*Clear the terminal at start*/
     clear_terminal();
-
+    
     while (TRUE)
     {
         char **tokens;
@@ -893,14 +956,15 @@ int main(void)
         size_t number_of_ctokens = 0;
         AST *ast = NULL;
 
-        read_cmd(pcmd, MAX_SIZE);
+        read_cmd(pcmd, MAX_LINE_SIZE);
         tokens = tokenizer(pcmd, &number_of_tokens);
         if (tokens != NULL)
         {
             Token *ctox = token_classifier(tokens, number_of_tokens, &number_of_ctokens);
             ast = parser(ctox);
-            if(ast){
+            if(ast != NULL){
                 ast_print(ast);
+                printf("TEST\n");
                 ast_free(ast); 
             }
             // exec(pcmd);
