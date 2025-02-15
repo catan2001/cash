@@ -47,6 +47,11 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Error handling function
 - [x] Synchronization 
 - [x] Add class and struct keywords to parser
+
+### NEXT TIME
+- [ ] Add support for comma Expressions
+- [ ] Add support for ternary operators
+- [ ] Add error productions to handle each binary operator appearing without a left-hand operand
 - [ ] Create Coroutine for synchronization
 - [ ] Semantic evaluation of AST
 - [ ] Combine tokenization and classification into one function Scanner/Lexer
