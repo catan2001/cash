@@ -910,6 +910,9 @@ static AST *expression(Token *token_list, size_t *token_position, AST *ast)
 /* Function that implements STAT rule of grammar */
 static AST *statement(Token *token_list, size_t *token_position, AST *ast)
 {
+
+    /* Add the option for block of statements */
+    TODO("Add the option for comma of expressions, ternary operators and error production to handle binary operator");
     if(!setjmp(sync_env))
         fprintf(stdout, "Setjmp!\n");
 
