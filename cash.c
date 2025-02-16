@@ -156,6 +156,7 @@ struct AST
     {
         AST_LITERAL,
         AST_EXPR,
+        AST_ASSIGN_EXPR,
         AST_BINARY,
         AST_UNARY,
         AST_GROUPING
@@ -163,7 +164,8 @@ struct AST
     union 
     {
         Token *token;
-        struct AST_EXPR {AST *left; Token *token;} AST_EXPR;
+        struct AST_EXPR {AST *left; Token *token; AST *right;} AST_EXPR;
+        struct AST_ASSIGN_EXPR {AST *left; Token *token; AST *right;} AST_ASSIGN_EXPR;
         struct AST_GROUPING {AST *left; Token *token;} AST_GROUPING;
         struct AST_BINARY {AST *left; Token *token; AST *right;} AST_BINARY;
         struct AST_UNARY {AST *right; Token *token;} AST_UNARY;
@@ -211,7 +213,7 @@ static int error(char *msg)
 {
     if (isatty(fileno(stdin)))
     {
-        fprintf(stderr, msg);
+        fprintf(stderr,"%s: %d ERROR: %s\n", __FILE__, __LINE__, msg);
         return EXIT_SUCCESS;
     }
     fprintf(stderr, "Could not output to terminal, file descriptor %d", fileno(stdin));
@@ -279,7 +281,7 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
     // Deallocate memory if realloc fails
     if (!new_tokens)
     {
-        fprintf(stderr, "ERROR: tokenizer [realloc failed]\n");
+        error("Tokenizer reallocation failed!");
         for (size_t j = 0; j < *token_cnt; ++j)
             free(tokens[j]);
         free(tokens);
@@ -291,7 +293,7 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
     tokens[*token_cnt] = strdup(token);
     if (!tokens[*token_cnt])
     {
-        fprintf(stderr, "ERROR: tokenizer [strdup failed]\n");
+        error("Tokenizer strdup failed!");
         exit(EXIT_FAILURE);
     }
     // Increment token count
@@ -599,7 +601,7 @@ static AST *ast_new(AST ast)
     AST *ast_ptr = malloc(sizeof(AST));
     if(ast_ptr) *ast_ptr = ast;
     else
-        fprintf(stderr, "error: ast_new failed to allocate memory!\n");
+        error("ast_new failed to allocate memory!");
     return ast_ptr;
 }
 
@@ -637,7 +639,7 @@ static void ast_free(AST *ast)
 {
     if(!ast) 
     {
-        fprintf(stderr, "Error! Cannot free AST: %s\n", ast->data.token->lexeme);
+        fprintf(stderr, "%s: %d Error: Cannot free AST: %s\n", __FILE__, __LINE__, ast->data.token->lexeme);
         return;
     }
     switch(ast->tag)
@@ -910,14 +912,40 @@ static AST *expression(Token *token_list, size_t *token_position, AST *ast)
 /* Function that implements STAT rule of grammar */
 static AST *statement(Token *token_list, size_t *token_position, AST *ast)
 {
-
     /* Add the option for block of statements */
     TODO("Add the option for comma of expressions, ternary operators and error production to handle binary operator");
     if(!setjmp(sync_env))
         fprintf(stdout, "Setjmp!\n");
 
-    token_list[*token_position].type == EOF_TOKEN ?
-        ast : expression(token_list, token_position, ast); 
+    if(token_list[*token_position].type == EOF_TOKEN)
+        return ast;
+
+    Token *operator = &token_list[*token_position]; 
+    ast = expression(token_list, token_position, ast);
+
+    while(token_list[*token_position].type == COMMA)
+    {
+        operator = &token_list[*token_position];
+         if(next_position(token_position, token_list)) {
+            parser_error(*operator, "Missing right expression!\n");
+            panic_mode(token_list, token_position);
+            return ast;
+        }
+        AST *right = expression(token_list, token_position, ast);
+        if(ast->tag == AST_ASSIGN_EXPR) ast->tag = AST_EXPR;
+        ast = ast_new((AST)
+            {
+                .tag = AST_ASSIGN_EXPR,
+                .data.AST_ASSIGN_EXPR = {
+                    ast,
+                    operator,
+                    right
+                }
+            }            
+        );
+    }
+
+    return ast;
 }
 
 /* Function that parses tokens into AST using grammar rules*/
