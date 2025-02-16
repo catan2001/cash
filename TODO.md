@@ -48,8 +48,11 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Synchronization 
 - [x] Add class and struct keywords to parser
 
+### 16.2.2025.
+- [x] Fix error function
+- [x] Add support for comma Expressions
+
 ### NEXT TIME
-- [ ] Add support for comma Expressions
 - [ ] Add support for ternary operators
 - [ ] Add error productions to handle each binary operator appearing without a left-hand operand
 - [ ] Create Coroutine for synchronization
