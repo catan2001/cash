@@ -33,17 +33,19 @@ The cash interpreting language supports a rich set of operators:
 ```BNF
 Rules:
 **********************************************
-<PROG>    ::=  <STMT>
-<STMT>    ::=  <EXPR>
-<EXPR>    ::=  <EQL>
-<EQL>     ::=  <CMPR> (( "!=" | "==" ) <CMPR> )*
-<CMPR>    ::=  <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
-<TERM>    ::=  <FACT> (( "-" | "+" ) <FACT> )*
-<FACT>    ::=  <UNRY> (( "/" | "*") <UNRY> )*
-<UNRY>    ::=  ( "!" | "-" ) <UNRY>
-              | <PRIM>
-<PRIM>    ::=  <NUM> | <STR> | "TRUE" | "FALSE" | "NULL"
-              | "(" <EXPR> ")"
+<PROG>        ::=   <STMT>
+<STMT>        ::=   <A-EXPR>
+                    | <EXPR> ("," <EXPR>)* "," <A-EXPR>
+<A-EXPR>      ::=   <EQL>
+<EXPR>        ::=   <EQL>
+<EQL>         ::=   <CMPR> (( "!=" | "==" ) <CMPR> )*
+<CMPR>        ::=   <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
+<TERM>        ::=   <FACT> (( "-" | "+" ) <FACT> )*
+<FACT>        ::=   <UNRY> (( "/" | "*") <UNRY> )*
+<UNRY>        ::=   ( "!" | "-" ) <UNRY>
+                    | <PRIM>
+<PRIM>        ::=   <NUM> | <STR> | "TRUE" | "FALSE" | "NULL"
+                    | "(" <EXPR> ")"
 
 
 Syntax:
@@ -56,6 +58,7 @@ Scheme:
 <PROG>    -> programm;
 <STMT>    -> statement;
 <EXPR>    -> expression;
+<A-EXPR>  -> assignment-expression;
 <EQL>     -> equality;
 <CMPR>    -> comparison;
 <TERM>    -> term;
