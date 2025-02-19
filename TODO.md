@@ -50,11 +50,14 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 
 ### 16.2.2025.
 - [x] Fix error function
-- [x] Add support for comma Expressions
 
-### NEXT TIME
+### 19.2.2025.
+- [x] Add error productions to handle each binary operator appearing without a left-hand operand
+- [x] Started working on evaluation
+
+### NEXT TIME:
 - [ ] Add support for ternary operators
-- [ ] Add error productions to handle each binary operator appearing without a left-hand operand
+- [ ] Add support for comma Expressions
 - [ ] Create Coroutine for synchronization
 - [ ] Semantic evaluation of AST
 - [ ] Combine tokenization and classification into one function Scanner/Lexer
