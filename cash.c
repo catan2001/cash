@@ -44,6 +44,36 @@ SOFTWARE.
         abort();                                                    \
     } while(0)
 
+#define BINARY_OPERATION(op, left, left_t, right, right_t, result) do {                 \
+        if(left_t == NUMBER_INT && right_t == NUMBER_INT) {                             \
+            (result).integer_value = (left).integer_value op (right).integer_value;     \
+        }                                                                               \
+        else if(left_t == NUMBER_INT) {                                                 \
+            (result).float_value = (left).integer_value op (right).float_value;         \
+        }                                                                               \
+        else if(right_t == NUMBER_INT){                                                 \
+            (result).float_value = (left).float_value op (right).integer_value;         \
+        }                                                                               \
+        else {                                                                          \
+            (result).float_value = (left).float_value op (right).float_value;           \
+        }                                                                               \
+    } while(0)  
+
+#define BINARY_COMPARISON(op, left, left_t, right, right_t, result) do {                    \
+        if(left_t == NUMBER_INT && right_t == NUMBER_INT) {                             \
+            (result).integer_value = (left).integer_value op (right).integer_value;     \
+        }                                                                               \
+        else if(left_t == NUMBER_INT) {                                                 \
+            (result).integer_value = (left).integer_value op (right).float_value;         \
+        }                                                                               \
+        else if(right_t == NUMBER_INT){                                                 \
+            (result).integer_value = (left).float_value op (right).integer_value;         \
+        }                                                                               \
+        else {                                                                          \
+            (result).integer_value = (left).float_value op (right).float_value;           \
+        }                                                                               \
+    } while(0)  
+
 static jmp_buf sync_env;
 
 /* Enumerating type for defining token type */
@@ -74,7 +104,6 @@ typedef enum value_t
     RIGHT_BRACE                             = '}',
     XOR                                     = '~',
 
-
     /* Two character special token: */
     EXCLAMATION_EQUEAL, 
     DOUBLE_EQUAL,       
@@ -86,7 +115,8 @@ typedef enum value_t
     /* Literals: */
     IDENTIFIER,          
     STRING,
-    NUMBER,
+    NUMBER_INT,
+    NUMBER_FLOAT,
 
     /* Commands: */
     EXEC,   
@@ -319,17 +349,18 @@ static int is_letter(char c)
 **Helper Function: Determines type of character*/
 static CharacterType type_of_character(char c)
 {
-    // Determine if letter, number or underscore
-    if(is_digit(c) || is_letter(c) || c == '_')
+    // Determine if letter, number (float or int) or underscore
+    if(is_digit(c) || is_letter(c) || c == '_' || c =='.')
         return OTHER;
 
     // Determine if Special characters
     switch (c)
     {
-            case '~': case '|': case ';': case '&': case '#': 
+            case '~':  case '|': case ';': case '&': case '#': 
             case '\'': case '(': case ')': case '{': case '}':
-            case '*': case '+': case '-': case '%': case '/':
+            case '*':  case '+': case '-': case '%': case '/':
             case '!':  case '=': case '<': case '>': case '?':
+            case ',':
                 return SPECIAL;
             case '"':  
                 return QUOTES;
@@ -393,7 +424,6 @@ static TokenType classify_string(char *token, Token *ctoken)
 static TokenType classify_number(const char *token, Token *ctoken) 
 {
     ctoken->lexeme = strdup(token);
-    ctoken->type = NUMBER;
     if(!ctoken->lexeme)
         return FAILED_TO_CLASSIFY;
 
@@ -401,11 +431,11 @@ static TokenType classify_number(const char *token, Token *ctoken)
         if(token[i] == '.') 
         {
             ctoken->literal.float_value = atof(token);
-            return NUMBER;
+            return NUMBER_FLOAT;
         }
     }
     ctoken->literal.integer_value = atoi(token);
-    return NUMBER;
+    return NUMBER_INT;
 }
 
 /*@classify_reserved_words
@@ -526,6 +556,7 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
 /*@token_classifier
 **Function: Classifies tokens.*/
 static Token *token_classifier(char **token, const size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
+                                                                                                       //
 {
 
     if (!token)
@@ -616,14 +647,28 @@ static void ast_print(AST *ast)
 
     switch(ast->tag)
     {
+        case AST_EXPR: 
+        {
+            fprintf(stdout, "Expression Node: %s\n", ast->data.AST_BINARY.token->lexeme);
+            ast_print(ast->data.AST_EXPR.left);
+            ast_print(ast->data.AST_EXPR.right);
+            break;
+        }
+        case AST_ASSIGN_EXPR:
+        {
+            fprintf(stdout, "Assignment Expression Node: %s\n", ast->data.AST_BINARY.token->lexeme);
+            ast_print(ast->data.AST_ASSIGN_EXPR.left);
+            ast_print(ast->data.AST_ASSIGN_EXPR.right);
+            break;               
+        }
         case AST_BINARY:
+            fprintf(stdout, "Binary Node: %s\n", ast->data.AST_BINARY.token->lexeme);
             ast_print(ast->data.AST_BINARY.left);
             ast_print(ast->data.AST_BINARY.right);
-            fprintf(stdout, "Binary Node: %s\n", ast->data.AST_BINARY.token->lexeme);
             break;
         case AST_UNARY:
-            ast_print(ast->data.AST_UNARY.right);
             fprintf(stdout, "Unary Node: %s\n", ast->data.AST_UNARY.token->lexeme);
+            ast_print(ast->data.AST_UNARY.right);
             break;
         case AST_LITERAL:
             fprintf(stdout, "Literal Node: %s\n", ast->data.token->lexeme);
@@ -647,8 +692,15 @@ static void ast_free(AST *ast)
         case AST_EXPR: 
         {
             ast_free(ast->data.AST_EXPR.left);
+            ast_free(ast->data.AST_EXPR.right);
             break;
-        }   
+        }
+        case AST_ASSIGN_EXPR:
+        {
+            ast_free(ast->data.AST_ASSIGN_EXPR.left);
+            ast_free(ast->data.AST_ASSIGN_EXPR.right);
+            break;               
+        }
         case AST_BINARY: 
         {
             ast_free(ast->data.AST_BINARY.left);
@@ -721,7 +773,8 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
 {
     switch (token_list[*token_position].type)
     {
-        case NUMBER:
+        case NUMBER_FLOAT:
+        case NUMBER_INT:
         case STRING:
         case TRUE_TOKEN:
         case FALSE_TOKEN:
@@ -747,6 +800,11 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
                 return ast;
             }
         }
+        case ADD: case SUBTRACT: case MULTIPLY: case DIVIDE:
+        {
+            parser_error(token_list[*token_position], "could not parse such token. Expected right operator.");
+            panic_mode(token_list, token_position);
+        }
         default:
             break;
     }
@@ -758,8 +816,9 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
 /* Function that implements UNRY rule of grammar */
 static AST *unary(Token *token_list, size_t *token_position, AST *ast)
 {
-    if(token_list[*token_position].type == SUBTRACT ||
-       token_list[*token_position].type == EXCLAMATION)
+    if(token_list[*token_position].type == SUBTRACT    ||
+       token_list[*token_position].type == EXCLAMATION ||
+       token_list[*token_position].type == XOR)
     {
         Token *operator = &token_list[*token_position];
         if(next_position(token_position, token_list)) {
@@ -903,26 +962,11 @@ static AST *equality(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-/* Function that implements EXPR rule of grammar */
-static AST *expression(Token *token_list, size_t *token_position, AST *ast)
+/*
+static AST *comma_expression(Token *token_list, size_t *token_position, AST* ast)
 {
-    return equality(token_list, token_position, ast);
-}
-
-/* Function that implements STAT rule of grammar */
-static AST *statement(Token *token_list, size_t *token_position, AST *ast)
-{
-    /* Add the option for block of statements */
-    TODO("Add the option for comma of expressions, ternary operators and error production to handle binary operator");
-    if(!setjmp(sync_env))
-        fprintf(stdout, "Setjmp!\n");
-
-    if(token_list[*token_position].type == EOF_TOKEN)
-        return ast;
-
+    TODO("finish comma_expression");    
     Token *operator = &token_list[*token_position]; 
-    ast = expression(token_list, token_position, ast);
-
     while(token_list[*token_position].type == COMMA)
     {
         operator = &token_list[*token_position];
@@ -944,7 +988,28 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
             }            
         );
     }
+    return equality();
+}
+*/
 
+/* Function that implements EXPR rule of grammar */
+static AST *expression(Token *token_list, size_t *token_position, AST *ast)
+{
+   return equality(token_list, token_position, ast);
+}
+
+/* Function that implements STAT rule of grammar */
+static AST *statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    /* Add the option for block of statements */
+    if(!setjmp(sync_env))
+        fprintf(stdout, "Setjmp!\n");
+
+    if(token_list[*token_position].type == EOF_TOKEN)
+        return ast;
+
+    ast = expression(token_list, token_position, ast);
+    /* Define what type statement is */
     return ast;
 }
 
@@ -954,6 +1019,132 @@ static AST *parser(Token *token_list)
     size_t token_position = 0;
     AST *ast = NULL;
     return statement(token_list, &token_position, ast);
+}
+
+/* Function that returns value of AST node */
+static Value literal_value(AST *node)
+{
+    if(node->tag == AST_LITERAL)
+        return node->data.token->literal;
+    error("Tried to return non-literal node.");
+    abort();
+} 
+
+static Value is_truth(Value value)
+{
+    return value;
+}
+
+/*evaulate*/
+
+static Value evaulate_unary_expression(AST *node)
+{
+    if(node->tag != AST_UNARY) 
+    {
+        error("Tried to evaluate non-unary node!");
+        abort();
+    }
+
+    Value right = literal_value(node->data.AST_UNARY.right);
+    TokenType right_value_type = node->data.AST_UNARY.right->data.token->type;
+    TokenType operator_type = node->data.AST_UNARY.token->type;
+
+    switch(operator_type)
+    {
+        case SUBTRACT:
+        {
+            if(right_value_type == NUMBER_FLOAT)
+                right.float_value = (-1)*right.float_value;
+            else
+                right.integer_value = (-1)*right.integer_value; 
+            return right;                
+        }
+        case XOR:
+        {
+            TODO("Throw an error for float value ~");
+            right.integer_value = ~right.integer_value; 
+            return right;
+        }
+        case EXCLAMATION:
+        {
+            TODO("Deal with boolean values");
+        }
+        default: 
+            break;
+    }
+    abort();
+}
+
+static Value evaluate_binary_expression(AST *node)
+{
+    if(node->tag != AST_BINARY)
+    {
+        error("Tried to evaluate non-binary expression");
+        abort();
+    }
+
+    Value left = literal_value(node->data.AST_BINARY.left);
+    Value right = literal_value(node->data.AST_BINARY.right);
+
+    TokenType right_value_type = node->data.AST_BINARY.right->data.token->type;
+    TokenType left_value_type = node->data.AST_BINARY.left->data.token->type;
+    TokenType operator_type = node->data.AST_BINARY.token->type;
+    
+    Value ret;
+    
+    switch(operator_type)
+    {
+        case EXCLAMATION_EQUEAL:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement difference for string values.");
+            BINARY_COMPARISON(!=, left, left_value_type, right, right_value_type, ret);
+            return ret;
+        case DOUBLE_EQUAL:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement equality for string values.");
+            BINARY_COMPARISON(==, left, left_value_type, right, right_value_type, ret);
+            return ret;
+        case REDIRECTION_RIGHT_GREATER_RELATIONAL:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement greater for string values.");
+            BINARY_COMPARISON(>, left, left_value_type, right, right_value_type, ret);
+            return ret;
+        case REDIRECTION_LEFT_LESS_RELATIONAL:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement less for string values.");
+            BINARY_COMPARISON(<, left, left_value_type, right, right_value_type, ret);
+            return ret;
+        case GREATER_EQUAL:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement greater or equal for string values.");
+            BINARY_COMPARISON(>=, left, left_value_type, right, right_value_type, ret);
+            return ret;
+        case LESS_EQUAL:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement less or equal for string values.");
+            BINARY_COMPARISON(<=, left, left_value_type, right, right_value_type, ret);
+            return ret;
+        case SUBTRACT:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement subtract for string values.");
+            BINARY_OPERATION(-, left, left_value_type, right, right_value_type, ret);
+            return ret;          
+        case MULTIPLY:
+            if(left_value_type == STRING || right_value_type == STRING)
+                TODO("Implement multiply for string values.");
+            BINARY_OPERATION(*, left, left_value_type, right, right_value_type, ret);
+            return ret;
+        case DIVIDE:
+            if(left_value_type == STRING && right_value_type == STRING)
+                TODO("Implement divide for string values.");
+            BINARY_OPERATION(/, left, left_value_type, right, right_value_type, ret);              
+            return ret;
+        case ADD:
+            if(right_value_type == STRING || left_value_type == STRING) 
+                TODO("Implement addition for string");
+            BINARY_OPERATION(+, left, left_value_type, right, right_value_type, ret);    
+            return ret;
+    }
 }
 
 // TODO: ./execution does not work
@@ -986,7 +1177,7 @@ int main(void)
         size_t number_of_tokens = 0;
         size_t number_of_ctokens = 0;
         AST *ast = NULL;
-
+        
         read_cmd(pcmd, MAX_LINE_SIZE);
         tokens = tokenizer(pcmd, &number_of_tokens);
         if (tokens != NULL)
