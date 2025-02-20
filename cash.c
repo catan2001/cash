@@ -1072,26 +1072,29 @@ static ValueTagged *evaulate_unary_expression(AST *node)
         abort();
     }
 
-    Value *right = literal_value(node->data.AST_UNARY.right);
+    /* TODO(Add support multiple unary expressions); */
+
+    Value *right = literal_value(node->data.AST_UNARY.right); // change this to evaluate whole
+    //ValueTagged *right = (node->data.AST_UNARY.right->tag == AST_LITERAL) ? literal_value(node->data.AST_UNARY.right) : evaluate()
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
-    TokenType right_value_type = node->data.AST_UNARY.right->data.token->type;
+    TokenType right->type = node->data.AST_UNARY.right->data.token->type;
     TokenType operator_type = node->data.AST_UNARY.token->type;
-    result->type = right_value_type;
+    result->type = right->type;
 
     switch(operator_type)
     {
         case SUBTRACT:
         {
-            if(right_value_type == STRING) {
+            if(right->type == STRING) {
                 TODO("Throw an error for string value -");
                 break;
             }
 
-            if(right_value_type == NUMBER_FLOAT)
+            if(right->type == NUMBER_FLOAT)
                 result->literal.float_value = (-1)*right->float_value;
-            if(right_value_type == NUMBER_INT)
+            if(right->type == NUMBER_INT)
                 result->literal.integer_value = (-1)*right->integer_value; 
-            if(right_value_type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
+            if(right->type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
             {
                 result->literal.integer_value = (-1)*right->boolean_value;
                 result->type = NUMBER_INT;
@@ -1100,14 +1103,14 @@ static ValueTagged *evaulate_unary_expression(AST *node)
         }
         case XOR:
         {
-            if(right_value_type == STRING || right_value_type == NUMBER_FLOAT) 
+            if(right->type == STRING || right_value_type == NUMBER_FLOAT) 
             {
                 TODO("Throw an error for float value ~");
                 break;
             }
-            if(right_value_type == NUMBER_INT)
+            if(right->type == NUMBER_INT)
                 result->literal.integer_value = ~right->integer_value; 
-            if(right_value_type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
+            if(right->type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
             {
                 result->literal.integer_value = ~right->boolean_value;
                 result->type = NUMBER_INT;
@@ -1116,18 +1119,19 @@ static ValueTagged *evaulate_unary_expression(AST *node)
         }
         case EXCLAMATION:
         {
-            result->literal.boolean_value = !is_truth(right, right_value_type).boolean_value;
+            result->literal.boolean_value = !is_truth(right, right->type).boolean_value;
             return (result->type = (result->literal.boolean_value) ? TRUE_TOKEN : FALSE_TOKEN, result);
         }
-        default: 
+        default:
+            error("Unallowed operator on unary expression!"); 
             break;
     }
 
     free(result);
     abort();
 }
-/*
-static Value evaluate_binary_expression(AST *node)
+
+static ValueTagged *evaluate_binary_expression(AST *node)
 {
     if(node->tag != AST_BINARY)
     {
@@ -1135,68 +1139,76 @@ static Value evaluate_binary_expression(AST *node)
         abort();
     }
 
-    Value left = literal_value(node->data.AST_BINARY.left);
-    Value right = literal_value(node->data.AST_BINARY.right);
+    //Value *left = literal_value(node->data.AST_BINARY.left); // change this to evaluate whole
+    //Value *right = literal_value(node->data.AST_BINARY.right); // change this to evaluate whole
 
-    TokenType right_value_type = node->data.AST_BINARY.right->data.token->type;
-    TokenType left_value_type = node->data.AST_BINARY.left->data.token->type;
+    ValueTagged *left = (node->data.AST_BINARY.left->tag == AST_LITERAL) ? 
+                                literal_value(node->data.AST_BINARY.left): 
+                                evaluate(node->data.AST_BINARY.left);
+    ValueTagged *right = (node->data.AST_BINARY.right->tag == AST_LITERAL) ? 
+                                literal_value(node->data.AST_BINARY.right): 
+                                evaluate(node->data.AST_BINARY.right);
+
     TokenType operator_type = node->data.AST_BINARY.token->type;
-    
-    Value ret;
+    ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     
     switch(operator_type)
     {
         case EXCLAMATION_EQUEAL:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement difference for string values.");
-            BINARY_COMPARISON(!=, left, left_value_type, right, right_value_type, ret);
+            BINARY_COMPARISON(!=, left, left->type, right, right->type, result);
             return ret;
         case DOUBLE_EQUAL:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement equality for string values.");
-            BINARY_COMPARISON(==, left, left_value_type, right, right_value_type, ret);
+            BINARY_COMPARISON(==, left, left->type, right, right->type, result);
             return ret;
         case REDIRECTION_RIGHT_GREATER_RELATIONAL:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement greater for string values.");
-            BINARY_COMPARISON(>, left, left_value_type, right, right_value_type, ret);
+            BINARY_COMPARISON(>, left, left->type, right, right->type, result);
             return ret;
         case REDIRECTION_LEFT_LESS_RELATIONAL:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement less for string values.");
-            BINARY_COMPARISON(<, left, left_value_type, right, right_value_type, ret);
+            BINARY_COMPARISON(<, left, left->type, right, right->type, result);
             return ret;
         case GREATER_EQUAL:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement greater or equal for string values.");
-            BINARY_COMPARISON(>=, left, left_value_type, right, right_value_type, ret);
+            BINARY_COMPARISON(>=, left, left->type, right, right->type, result);
             return ret;
         case LESS_EQUAL:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement less or equal for string values.");
-            BINARY_COMPARISON(<=, left, left_value_type, right, right_value_type, ret);
+            BINARY_COMPARISON(<=, left, left->type, right, right->type, result);
             return ret;
         case SUBTRACT:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement subtract for string values.");
-            BINARY_OPERATION(-, left, left_value_type, right, right_value_type, ret);
+            BINARY_OPERATION(-, left, left->type, right, right->type, result);
             return ret;          
         case MULTIPLY:
-            if(left_value_type == STRING || right_value_type == STRING)
+            if(left->type == STRING || right->type == STRING)
                 TODO("Implement multiply for string values.");
-            BINARY_OPERATION(*, left, left_value_type, right, right_value_type, ret);
+            BINARY_OPERATION(*, left, left->type, right, right->type, result);
             return ret;
         case DIVIDE:
-            if(left_value_type == STRING && right_value_type == STRING)
+            if(left->type == STRING && right->type == STRING)
                 TODO("Implement divide for string values.");
-            BINARY_OPERATION(/, left, left_value_type, right, right_value_type, ret);              
+            BINARY_OPERATION(/, left, left->type, right, right->type, result);              
             return ret;
         case ADD:
-            if(right_value_type == STRING || left_value_type == STRING) 
+            if(right->type == STRING || left->type == STRING) 
                 TODO("Implement addition for string");
-            BINARY_OPERATION(+, left, left_value_type, right, right_value_type, ret);    
+            BINARY_OPERATION(+, left, left->type, right, right->type, result);    
             return ret;
+        default:
+            break;
     }
+    free(result);
+    abort();
 }
 
 // TODO: ./execution does not work
@@ -1213,7 +1225,7 @@ static void exec(char *cmd)
         }
     }
 }
-*/
+
 int main(void)
 {
     // Set up the signal handler for SIGINT to close
@@ -1239,6 +1251,26 @@ int main(void)
             if(ast != NULL){
                 ast_print(ast);
                 printf("TEST\n");
+                ValueTagged *value = evaulate_unary_expression(ast);
+                switch (value->type)
+                {
+                case NUMBER_INT:
+                    fprintf(stdout, "Value INT = %d\n", value->literal.integer_value);
+                    break;
+                case NUMBER_FLOAT:
+                    fprintf(stdout, "Value FLOAT = %lf\n", value->literal.float_value);
+                    break;
+                case STRING:
+                     fprintf(stdout, "Value STRING = %s\n", value->literal.char_value);
+                    break;
+                case TRUE_TOKEN:
+                case FALSE_TOKEN:
+                      fprintf(stdout, "Value BOOLEAN = %d\n", value->literal.boolean_value);
+                    break;
+               default:
+                    error("errrrrror!");
+                    break;
+                }
                 ast_free(ast); 
             }
             // exec(pcmd);
