@@ -152,13 +152,21 @@ typedef enum character_t
     UNUSED_CHARACTERS
 } CharacterType;
 
-/*@Type Union: Abstract the type for interpreter*/
+/*@Type Union: Abstract the type for tokenizer, classifier and parser*/
 typedef union value_u
 {
     long long int integer_value;    // 64
     double float_value;             // 64
-    char *char_value;               // 64
+    char *char_value;               // 64 
+    int boolean_value;              // 8
 } Value;
+
+/*@Type Union: Abstract the type for interpreter*/
+typedef struct value_tag_s
+{
+    TokenType type;
+    Value literal;
+} ValueTagged;
 
 /*@Type Structure: Used for tokenization*/
 typedef struct token_s
@@ -444,15 +452,18 @@ static TokenType classify_reserved_words(const char *token, Token *ctoken)
 {
     /* Initialize lexeme and literal value to NULL*/
     ctoken->lexeme = strdup(token);
-    ctoken->literal.char_value = NULL;
 
     for (size_t i = 0; i < sizeof(reserved_word_map) / sizeof(reserved_word_map[0]); i++) {
         if (!compare_token(token, reserved_word_map[i].reserved_word)) {
+            if(reserved_word_map[i].type == TRUE_TOKEN)  ctoken->literal.boolean_value = TRUE;
+            else
+            if(reserved_word_map[i].type == FALSE_TOKEN) ctoken->literal.boolean_value = FALSE;
+            else
+                ctoken->literal.char_value = NULL;
             return reserved_word_map[i].type;
         }
     }
 
-    ctoken->lexeme = strdup(token);
     if (!ctoken->lexeme)
         return FAILED_TO_CLASSIFY;
 
@@ -558,7 +569,6 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
 static Token *token_classifier(char **token, const size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
                                                                                                        //
 {
-
     if (!token)
         return NULL;
 
@@ -776,13 +786,20 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
         case NUMBER_FLOAT:
         case NUMBER_INT:
         case STRING:
-        case TRUE_TOKEN:
-        case FALSE_TOKEN:
-        case NULL_TOKEN:
         {
             ast = ast_new((AST){
                 .tag = AST_LITERAL,
                 .data.token = &token_list[*token_position]});
+            next_position(token_position, token_list);
+            return ast;
+        }
+        case TRUE_TOKEN:
+        case FALSE_TOKEN:
+        case NULL_TOKEN:
+        {
+             ast = ast_new((AST){
+                .tag = AST_LITERAL,
+                .data.token = &token_list[*token_position]}); 
             next_position(token_position, token_list);
             return ast;
         }
@@ -1022,22 +1039,32 @@ static AST *parser(Token *token_list)
 }
 
 /* Function that returns value of AST node */
-static Value literal_value(AST *node)
+static Value *literal_value(AST *node)
 {
     if(node->tag == AST_LITERAL)
-        return node->data.token->literal;
+        return &node->data.token->literal;
     error("Tried to return non-literal node.");
     abort();
 } 
 
-static Value is_truth(Value value)
+/* Helper function that returns TRUE, FALSE */
+static Value is_truth(Value *value, TokenType type)
 {
-    return value;
+    Value ret;
+    if(type == NUMBER_INT) 
+        return (ret.boolean_value = (value->integer_value) ? TRUE : FALSE, ret);
+    if(type == NUMBER_FLOAT) 
+        return (ret.boolean_value = (value->float_value) ? TRUE : FALSE, ret);
+    if(value->char_value == NULL) 
+        return (ret.boolean_value = FALSE, ret);
+
+    return (ret.boolean_value = TRUE, ret);
 }
 
-/*evaulate*/
+/* Evaluate part of the Interpreter */
 
-static Value evaulate_unary_expression(AST *node)
+/* Function that evaluates unary expression */
+static ValueTagged *evaulate_unary_expression(AST *node)
 {
     if(node->tag != AST_UNARY) 
     {
@@ -1045,36 +1072,61 @@ static Value evaulate_unary_expression(AST *node)
         abort();
     }
 
-    Value right = literal_value(node->data.AST_UNARY.right);
+    Value *right = literal_value(node->data.AST_UNARY.right);
+    ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     TokenType right_value_type = node->data.AST_UNARY.right->data.token->type;
     TokenType operator_type = node->data.AST_UNARY.token->type;
+    result->type = right_value_type;
 
     switch(operator_type)
     {
         case SUBTRACT:
         {
+            if(right_value_type == STRING) {
+                TODO("Throw an error for string value -");
+                break;
+            }
+
             if(right_value_type == NUMBER_FLOAT)
-                right.float_value = (-1)*right.float_value;
-            else
-                right.integer_value = (-1)*right.integer_value; 
-            return right;                
+                result->literal.float_value = (-1)*right->float_value;
+            if(right_value_type == NUMBER_INT)
+                result->literal.integer_value = (-1)*right->integer_value; 
+            if(right_value_type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
+            {
+                result->literal.integer_value = (-1)*right->boolean_value;
+                result->type = NUMBER_INT;
+            }
+            return result;                
         }
         case XOR:
         {
-            TODO("Throw an error for float value ~");
-            right.integer_value = ~right.integer_value; 
-            return right;
+            if(right_value_type == STRING || right_value_type == NUMBER_FLOAT) 
+            {
+                TODO("Throw an error for float value ~");
+                break;
+            }
+            if(right_value_type == NUMBER_INT)
+                result->literal.integer_value = ~right->integer_value; 
+            if(right_value_type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
+            {
+                result->literal.integer_value = ~right->boolean_value;
+                result->type = NUMBER_INT;
+            }
+            return result;
         }
         case EXCLAMATION:
         {
-            TODO("Deal with boolean values");
+            result->literal.boolean_value = !is_truth(right, right_value_type).boolean_value;
+            return (result->type = (result->literal.boolean_value) ? TRUE_TOKEN : FALSE_TOKEN, result);
         }
         default: 
             break;
     }
+
+    free(result);
     abort();
 }
-
+/*
 static Value evaluate_binary_expression(AST *node)
 {
     if(node->tag != AST_BINARY)
@@ -1161,7 +1213,7 @@ static void exec(char *cmd)
         }
     }
 }
-
+*/
 int main(void)
 {
     // Set up the signal handler for SIGINT to close
