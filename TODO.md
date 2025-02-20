@@ -58,6 +58,7 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 ### 20.2.2025.
 - [x] Added Boolean type and classified TRUE and FALSE
 - [x] Fixed evaluation of unary expression.
+- [x] Tested evaluate_unary_expression function
 
 ### NEXT TIME:
 - [ ] Fix all functions of evaluation.
