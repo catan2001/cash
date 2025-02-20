@@ -56,6 +56,14 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Started working on evaluation
 
 ### NEXT TIME:
+- [x] Added Boolean type and classified TRUE and FALSE
+- [x] Fixed evaluation of unary expression.
+
+### NEXT TIME:
+- [ ] Fix all functions of evaluation.
+- [ ] Add Runtime Errors.
+- [ ] Hook up the interpreter.
+- [ ] Bug when freeing memory for unused characters
 - [ ] Add support for ternary operators
 - [ ] Add support for comma Expressions
 - [ ] Create Coroutine for synchronization
