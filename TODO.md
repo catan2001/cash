@@ -60,8 +60,15 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Fixed evaluation of unary expression.
 - [x] Tested evaluate_unary_expression function
 
+### 21.2.2025.
+- [x] Refactored functions.
+- [x] Added evalution for binary expression.
+- [x] Added evaluation caller function.
+
 ### NEXT TIME:
+- [ ] Allocate memory for every new string?
 - [ ] Fix all functions of evaluation.
+- [ ] Fix error function line numbering
 - [ ] Add Runtime Errors.
 - [ ] Hook up the interpreter.
 - [ ] Bug when freeing memory for unused characters
