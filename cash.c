@@ -39,40 +39,134 @@ SOFTWARE.
 #define MAX_LINE_SIZE 1000
 
 // TsodingDaily <3
-#define TODO(msg) do {                                              \
-        fprintf(stderr, "%s:%d TODO: %s\n", __FILE__, __LINE__, msg); \
-        abort();                                                    \
+#define TODO(msg) do {                                                  \
+        fprintf(stderr, "%s:%d TODO: %s\n", __FILE__, __LINE__, msg);   \
+        abort();                                                        \
     } while(0)
+   
+#define BINARY_ADD_SUB_MULTIPLY_OPERATION(op, left, right, result)                                              \
+    do                                                                                                          \
+    {                                                                                                           \
+        if ((left)->type == NUMBER_FLOAT && (right)->type == NUMBER_FLOAT)                                      \
+        {                                                                                                       \
+            (result)->literal.float_value = (left)->literal.float_value op (right)->literal.float_value;        \
+            (result)->type = NUMBER_FLOAT;                                                                      \
+        }                                                                                                       \
+        else if ((left)->type == NUMBER_FLOAT && (right)->type == NUMBER_INT)                                   \
+        {                                                                                                       \
+            (result)->literal.float_value = (left)->literal.float_value op (right)->literal.integer_value;      \
+            (result)->type = NUMBER_FLOAT;                                                                      \
+        }                                                                                                       \
+        else if ((left)->type == NUMBER_FLOAT && ((right)->type == TRUE_TOKEN || (right)->type == FALSE_TOKEN)) \
+        {                                                                                                       \
+            (result)->literal.float_value = (left)->literal.float_value op (right)->literal.boolean_value;      \
+            (result)->type = NUMBER_FLOAT;                                                                      \
+        }                                                                                                       \
+        else if ((left)->type == NUMBER_INT && (right)->type == NUMBER_FLOAT)                                   \
+        {                                                                                                       \
+            (result)->literal.float_value = (left)->literal.integer_value op (right)->literal.float_value;      \
+            (result)->type = NUMBER_FLOAT;                                                                      \
+        }                                                                                                       \
+        else if ((left)->type == NUMBER_INT && (right)->type == NUMBER_INT)                                     \
+        {                                                                                                       \
+            (result)->literal.integer_value = (left)->literal.integer_value op (right)->literal.integer_value;  \
+            (result)->type = NUMBER_INT;                                                                        \
+        }                                                                                                       \
+        else if ((left)->type == NUMBER_INT && ((right)->type == TRUE_TOKEN || (right)->type == FALSE_TOKEN))   \
+        {                                                                                                       \
+            (result)->literal.integer_value = (left)->literal.integer_value op (right)->literal.boolean_value;  \
+            (result)->type = NUMBER_INT;                                                                        \
+        }                                                                                                       \
+        else if (((left)->type == TRUE_TOKEN || (left)->type == FALSE_TOKEN) && (right)->type == NUMBER_INT)    \
+        {                                                                                                       \
+            (result)->literal.integer_value = (left)->literal.boolean_value op (right)->literal.integer_value;  \
+            (result)->type = NUMBER_INT;                                                                        \
+        }                                                                                                       \
+        else if (((left)->type == TRUE_TOKEN || (left)->type == FALSE_TOKEN) && (right)->type == NUMBER_FLOAT)  \
+        {                                                                                                       \
+            (result)->literal.float_value = (left)->literal.boolean_value op (right)->literal.float_value;      \
+            (result)->type = NUMBER_FLOAT;                                                                      \
+        }                                                                                                       \
+        else                                                                                                    \
+        {                                                                                                       \
+            (result)->literal.integer_value = (left)->literal.boolean_value op (right)->literal.boolean_value;  \
+            (result)->type = NUMBER_INT;                                                                        \
+        }                                                                                                       \
+    } while (0)
 
-#define BINARY_OPERATION(op, left, left_t, right, right_t, result) do {                 \
-        if(left_t == NUMBER_INT && right_t == NUMBER_INT) {                             \
-            (result).integer_value = (left).integer_value op (right).integer_value;     \
-        }                                                                               \
-        else if(left_t == NUMBER_INT) {                                                 \
-            (result).float_value = (left).integer_value op (right).float_value;         \
-        }                                                                               \
-        else if(right_t == NUMBER_INT){                                                 \
-            (result).float_value = (left).float_value op (right).integer_value;         \
-        }                                                                               \
-        else {                                                                          \
-            (result).float_value = (left).float_value op (right).float_value;           \
-        }                                                                               \
-    } while(0)  
+#define BINARY_DIVIDE_OPERATION(op, left, right, result)                                                                        \
+    do                                                                                                                          \
+    {                                                                                                                           \
+        if ((left)->type == NUMBER_FLOAT && (right)->type == NUMBER_FLOAT)                                                      \
+        {                                                                                                                       \
+            (result)->literal.float_value = (left)->literal.float_value op (right)->literal.float_value;                        \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else if ((left)->type == NUMBER_FLOAT && (right)->type == NUMBER_INT)                                                   \
+        {                                                                                                                       \
+            (result)->literal.float_value = (left)->literal.float_value op (double)(right)->literal.integer_value;              \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else if ((left)->type == NUMBER_FLOAT && ((right)->type == TRUE_TOKEN || (right)->type == FALSE_TOKEN))                 \
+        {                                                                                                                       \
+            (result)->literal.float_value = (left)->literal.float_value op (double)(right)->literal.boolean_value;              \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else if ((left)->type == NUMBER_INT && (right)->type == NUMBER_FLOAT)                                                   \
+        {                                                                                                                       \
+            (result)->literal.float_value = (double)(left)->literal.integer_value op (right)->literal.float_value;              \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else if ((left)->type == NUMBER_INT && (right)->type == NUMBER_INT)                                                     \
+        {                                                                                                                       \
+            (result)->literal.float_value = (left)->literal.integer_value op (double)(right)->literal.integer_value;            \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else if ((left)->type == NUMBER_INT && ((right)->type == TRUE_TOKEN || (right)->type == FALSE_TOKEN))                   \
+        {                                                                                                                       \
+            (result)->literal.float_value = (double)(left)->literal.integer_value op (double)(right)->literal.boolean_value;    \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else if (((left)->type == TRUE_TOKEN || (left)->type == FALSE_TOKEN) && (right)->type == NUMBER_INT)                    \
+        {                                                                                                                       \
+            (result)->literal.float_value = (double)(left)->literal.boolean_value op (double)(right)->literal.integer_value;    \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else if (((left)->type == TRUE_TOKEN || (left)->type == FALSE_TOKEN) && (right)->type == NUMBER_FLOAT)                  \
+        {                                                                                                                       \
+            (result)->literal.float_value = (double)(left)->literal.boolean_value op (double)(right)->literal.float_value;      \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+        else                                                                                                                    \
+        {                                                                                                                       \
+            (result)->literal.float_value = (double)(left)->literal.boolean_value op (double)(right)->literal.boolean_value;    \
+            (result)->type = NUMBER_FLOAT;                                                                                      \
+        }                                                                                                                       \
+    } while (0)
 
-#define BINARY_COMPARISON(op, left, left_t, right, right_t, result) do {                    \
-        if(left_t == NUMBER_INT && right_t == NUMBER_INT) {                             \
-            (result).integer_value = (left).integer_value op (right).integer_value;     \
-        }                                                                               \
-        else if(left_t == NUMBER_INT) {                                                 \
-            (result).integer_value = (left).integer_value op (right).float_value;         \
-        }                                                                               \
-        else if(right_t == NUMBER_INT){                                                 \
-            (result).integer_value = (left).float_value op (right).integer_value;         \
-        }                                                                               \
-        else {                                                                          \
-            (result).integer_value = (left).float_value op (right).float_value;           \
-        }                                                                               \
-    } while(0)  
+#define BINARY_COMPARISON_OPERATION(op, left, right, result)                                                    \
+    do                                                                                                          \
+    {                                                                                                           \
+        if ((left)->type == NUMBER_FLOAT && (right)->type == NUMBER_FLOAT)                                      \
+            (result)->literal.boolean_value = (left)->literal.float_value op (right)->literal.float_value;      \
+        else if ((left)->type == NUMBER_FLOAT && (right)->type == NUMBER_INT)                                   \
+            (result)->literal.boolean_value = (left)->literal.float_value op (right)->literal.integer_value;    \
+        else if ((left)->type == NUMBER_FLOAT && ((right)->type == TRUE_TOKEN || (right)->type == FALSE_TOKEN)) \
+            (result)->literal.boolean_value = (left)->literal.float_value op (right)->literal.boolean_value;    \
+        else if ((left)->type == NUMBER_INT && (right)->type == NUMBER_FLOAT)                                   \
+            (result)->literal.boolean_value = (left)->literal.integer_value op (right)->literal.float_value;    \
+        else if ((left)->type == NUMBER_INT && (right)->type == NUMBER_INT)                                     \
+            (result)->literal.boolean_value = (left)->literal.integer_value op (right)->literal.integer_value;  \
+        else if ((left)->type == NUMBER_INT && ((right)->type == TRUE_TOKEN || (right)->type == FALSE_TOKEN))   \
+            (result)->literal.boolean_value = (left)->literal.integer_value op (right)->literal.boolean_value;  \
+        else if (((left)->type == TRUE_TOKEN || (left)->type == FALSE_TOKEN) && (right)->type == NUMBER_INT)    \
+            (result)->literal.boolean_value = (left)->literal.boolean_value op (right)->literal.integer_value;  \
+        else if (((left)->type == TRUE_TOKEN || (left)->type == FALSE_TOKEN) && (right)->type == NUMBER_FLOAT)  \
+            (result)->literal.boolean_value  = (left)->literal.boolean_value op (right)->literal.float_value;   \
+        else                                                                                                    \
+            (result)->literal.boolean_value = (left)->literal.boolean_value op (right)->literal.boolean_value;  \
+        (result)->type = (result->literal.boolean_value) ? TRUE_TOKEN : FALSE_TOKEN;                            \
+    } while (0)
 
 static jmp_buf sync_env;
 
@@ -1038,24 +1132,30 @@ static AST *parser(Token *token_list)
     return statement(token_list, &token_position, ast);
 }
 
+static ValueTagged *evaluate(AST *);
+
 /* Function that returns value of AST node */
-static Value *literal_value(AST *node)
+static ValueTagged *literal_value(AST *node)
 {
-    if(node->tag == AST_LITERAL)
-        return &node->data.token->literal;
-    error("Tried to return non-literal node.");
-    abort();
-} 
+    if(node->tag != AST_LITERAL) 
+    {
+        error("Tried to return non-literal node.");
+        abort();
+    }
+    
+    ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
+    return (result->literal = node->data.token->literal, result->type = node->data.token->type, result);
+}
 
 /* Helper function that returns TRUE, FALSE */
-static Value is_truth(Value *value, TokenType type)
+static Value is_truth(ValueTagged *value, TokenType type)
 {
     Value ret;
     if(type == NUMBER_INT) 
-        return (ret.boolean_value = (value->integer_value) ? TRUE : FALSE, ret);
+        return (ret.boolean_value = (value->literal.integer_value) ? TRUE : FALSE, ret);
     if(type == NUMBER_FLOAT) 
-        return (ret.boolean_value = (value->float_value) ? TRUE : FALSE, ret);
-    if(value->char_value == NULL) 
+        return (ret.boolean_value = (value->literal.float_value) ? TRUE : FALSE, ret);
+    if(value->literal.char_value == NULL) 
         return (ret.boolean_value = FALSE, ret);
 
     return (ret.boolean_value = TRUE, ret);
@@ -1072,12 +1172,8 @@ static ValueTagged *evaulate_unary_expression(AST *node)
         abort();
     }
 
-    /* TODO(Add support multiple unary expressions); */
-
-    Value *right = literal_value(node->data.AST_UNARY.right); // change this to evaluate whole
-    //ValueTagged *right = (node->data.AST_UNARY.right->tag == AST_LITERAL) ? literal_value(node->data.AST_UNARY.right) : evaluate()
+    ValueTagged *right = evaluate(node->data.AST_UNARY.right);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
-    TokenType right->type = node->data.AST_UNARY.right->data.token->type;
     TokenType operator_type = node->data.AST_UNARY.token->type;
     result->type = right->type;
 
@@ -1091,35 +1187,38 @@ static ValueTagged *evaulate_unary_expression(AST *node)
             }
 
             if(right->type == NUMBER_FLOAT)
-                result->literal.float_value = (-1)*right->float_value;
+                result->literal.float_value = (-1)*right->literal.float_value;
             if(right->type == NUMBER_INT)
-                result->literal.integer_value = (-1)*right->integer_value; 
-            if(right->type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
+                result->literal.integer_value = (-1)*(right->literal.integer_value); 
+            if(right->type == TRUE_TOKEN || right->type == FALSE_TOKEN)
             {
-                result->literal.integer_value = (-1)*right->boolean_value;
+                result->literal.integer_value = (-1)*right->literal.boolean_value;
                 result->type = NUMBER_INT;
             }
+            free(right);
             return result;                
         }
         case XOR:
         {
-            if(right->type == STRING || right_value_type == NUMBER_FLOAT) 
+            if(right->type == STRING || right->type == NUMBER_FLOAT) 
             {
                 TODO("Throw an error for float value ~");
                 break;
             }
             if(right->type == NUMBER_INT)
-                result->literal.integer_value = ~right->integer_value; 
-            if(right->type == TRUE_TOKEN || right_value_type == FALSE_TOKEN)
+                result->literal.integer_value = ~right->literal.integer_value; 
+            if(right->type == TRUE_TOKEN || right->type == FALSE_TOKEN)
             {
-                result->literal.integer_value = ~right->boolean_value;
+                result->literal.integer_value = ~right->literal.boolean_value;
                 result->type = NUMBER_INT;
             }
+            free(right);
             return result;
         }
         case EXCLAMATION:
         {
             result->literal.boolean_value = !is_truth(right, right->type).boolean_value;
+            free(right);
             return (result->type = (result->literal.boolean_value) ? TRUE_TOKEN : FALSE_TOKEN, result);
         }
         default:
@@ -1128,87 +1227,109 @@ static ValueTagged *evaulate_unary_expression(AST *node)
     }
 
     free(result);
+    free(right);
     abort();
 }
 
 static ValueTagged *evaluate_binary_expression(AST *node)
 {
-    if(node->tag != AST_BINARY)
-    {
-        error("Tried to evaluate non-binary expression");
-        abort();
-    }
 
-    //Value *left = literal_value(node->data.AST_BINARY.left); // change this to evaluate whole
-    //Value *right = literal_value(node->data.AST_BINARY.right); // change this to evaluate whole
-
-    ValueTagged *left = (node->data.AST_BINARY.left->tag == AST_LITERAL) ? 
-                                literal_value(node->data.AST_BINARY.left): 
-                                evaluate(node->data.AST_BINARY.left);
-    ValueTagged *right = (node->data.AST_BINARY.right->tag == AST_LITERAL) ? 
-                                literal_value(node->data.AST_BINARY.right): 
-                                evaluate(node->data.AST_BINARY.right);
-
-    TokenType operator_type = node->data.AST_BINARY.token->type;
+    ValueTagged *left = evaluate(node->data.AST_BINARY.left);
+    ValueTagged *right = evaluate(node->data.AST_BINARY.right);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
+    TokenType operator_type = node->data.AST_BINARY.token->type;
     
     switch(operator_type)
     {
         case EXCLAMATION_EQUEAL:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement difference for string values.");
-            BINARY_COMPARISON(!=, left, left->type, right, right->type, result);
-            return ret;
+            BINARY_COMPARISON_OPERATION(!=, left, right, result);
+            return (free(left), free(right), result);
         case DOUBLE_EQUAL:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement equality for string values.");
-            BINARY_COMPARISON(==, left, left->type, right, right->type, result);
-            return ret;
+            BINARY_COMPARISON_OPERATION(==, left, right, result); 
+            return (free(left), free(right), result);
         case REDIRECTION_RIGHT_GREATER_RELATIONAL:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement greater for string values.");
-            BINARY_COMPARISON(>, left, left->type, right, right->type, result);
-            return ret;
+            BINARY_COMPARISON_OPERATION(>, left, right, result); 
+            return (free(left), free(right), result);
         case REDIRECTION_LEFT_LESS_RELATIONAL:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement less for string values.");
-            BINARY_COMPARISON(<, left, left->type, right, right->type, result);
-            return ret;
+            BINARY_COMPARISON_OPERATION(<, left, right, result);
+            return (free(left), free(right), result);
         case GREATER_EQUAL:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement greater or equal for string values.");
-            BINARY_COMPARISON(>=, left, left->type, right, right->type, result);
-            return ret;
+            BINARY_COMPARISON_OPERATION(>=, left, right, result);
+            return (free(left), free(right), result);
         case LESS_EQUAL:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement less or equal for string values.");
-            BINARY_COMPARISON(<=, left, left->type, right, right->type, result);
-            return ret;
+            BINARY_COMPARISON_OPERATION(<=, left, right, result);
+            return (free(left), free(right), result);
         case SUBTRACT:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement subtract for string values.");
-            BINARY_OPERATION(-, left, left->type, right, right->type, result);
-            return ret;          
+            BINARY_ADD_SUB_MULTIPLY_OPERATION(-, left, right, result);
+            return (free(left), free(right), result);          
         case MULTIPLY:
             if(left->type == STRING || right->type == STRING)
                 TODO("Implement multiply for string values.");
-            BINARY_OPERATION(*, left, left->type, right, right->type, result);
-            return ret;
+            BINARY_ADD_SUB_MULTIPLY_OPERATION(*, left, right, result);
+            return (free(left), free(right), result);
         case DIVIDE:
-            if(left->type == STRING && right->type == STRING)
-                TODO("Implement divide for string values.");
-            BINARY_OPERATION(/, left, left->type, right, right->type, result);              
-            return ret;
+            if(left->type == STRING || right->type == STRING) {
+                TODO("Implement error for divide of string values.");
+            }
+            BINARY_DIVIDE_OPERATION(/, left, right, result);
+            return (free(left), free(right), result);
         case ADD:
-            if(right->type == STRING || left->type == STRING) 
-                TODO("Implement addition for string");
-            BINARY_OPERATION(+, left, left->type, right, right->type, result);    
-            return ret;
+        {
+            if(left->type == STRING && right->type == STRING)
+                result->literal.char_value = strcat(left->literal.char_value, right->literal.char_value);
+            else if(left->type == STRING && right->type == NUMBER_INT)
+                TODO("Add support for STRING + INT = STRING");
+            else if(left->type == STRING && right->type == NUMBER_FLOAT)
+                TODO("Add support for STRING + INT = STRING");
+            else if(left->type != STRING && right->type != STRING)
+                BINARY_ADD_SUB_MULTIPLY_OPERATION(+, left, right, result);
+            else
+                break;
+
+            return (free(left), free(right), result);
+        }
         default:
             break;
     }
+    free(left);
+    free(right);
     free(result);
     abort();
+} 
+
+/* Function that calls evaluation of specific node type */
+static ValueTagged *evaluate(AST *node)
+{   
+    switch (node->tag)
+    {
+    case AST_LITERAL:
+        return literal_value(node);
+    case AST_UNARY:
+        return evaulate_unary_expression(node);
+    case AST_BINARY:
+        return evaluate_binary_expression(node);
+    case AST_GROUPING:
+    case AST_EXPR:
+    case AST_ASSIGN_EXPR:
+    default:
+        break;
+    }
+    error("Tried to evaluate undefined AST node type.");
+    return NULL;
 }
 
 // TODO: ./execution does not work
@@ -1234,7 +1355,7 @@ int main(void)
 
     /*Clear the terminal at start*/
     clear_terminal();
-    
+    printf("num %lf\n", (double)54/(double)32);
     while (TRUE)
     {
         char **tokens;
@@ -1250,8 +1371,7 @@ int main(void)
             ast = parser(ctox);
             if(ast != NULL){
                 ast_print(ast);
-                printf("TEST\n");
-                ValueTagged *value = evaulate_unary_expression(ast);
+                ValueTagged *value = evaluate(ast);
                 switch (value->type)
                 {
                 case NUMBER_INT:
