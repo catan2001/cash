@@ -65,12 +65,16 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Added evalution for binary expression.
 - [x] Added evaluation caller function.
 
+### 22.2.2025.
+- [x] Added evaluation for grouping expression.
+- [x] Added runtime error handling function.
+- [x] Added result printing function.
+ 
 ### NEXT TIME:
+- [ ] Finish error handling
 - [ ] Allocate memory for every new string?
 - [ ] Fix all functions of evaluation.
 - [ ] Fix error function line numbering
-- [ ] Add Runtime Errors.
-- [ ] Hook up the interpreter.
 - [ ] Bug when freeing memory for unused characters
 - [ ] Add support for ternary operators
 - [ ] Add support for comma Expressions
