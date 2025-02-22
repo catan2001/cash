@@ -341,11 +341,11 @@ static void sigint_handler(const int sig)
 // TODO: implement ErrorReporter
 /*@error
 **Function: Prints error to prompt*/
-static int error(char *msg) 
+static int error(char *msg, char *file, int line) 
 {
     if (isatty(fileno(stdin)))
     {
-        fprintf(stderr,"%s: %d ERROR: %s\n", __FILE__, __LINE__, msg);
+        fprintf(stderr,"%s: %d ERROR: %s\n", file, line, msg);
         return EXIT_SUCCESS;
     }
     fprintf(stderr, "Could not output to terminal, file descriptor %d", fileno(stdin));
@@ -413,7 +413,7 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
     // Deallocate memory if realloc fails
     if (!new_tokens)
     {
-        error("Tokenizer reallocation failed!");
+        error("Tokenizer reallocation failed!", __FILE__, __LINE__);
         for (size_t j = 0; j < *token_cnt; ++j)
             free(tokens[j]);
         free(tokens);
@@ -425,7 +425,7 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
     tokens[*token_cnt] = strdup(token);
     if (!tokens[*token_cnt])
     {
-        error("Tokenizer strdup failed!");
+        error("Tokenizer strdup failed!", __FILE__, __LINE__);
         exit(EXIT_FAILURE);
     }
     // Increment token count
@@ -736,7 +736,7 @@ static AST *ast_new(AST ast)
     AST *ast_ptr = malloc(sizeof(AST));
     if(ast_ptr) *ast_ptr = ast;
     else
-        error("ast_new failed to allocate memory!");
+        error("ast_new failed to allocate memory!", __FILE__, __LINE__);
     return ast_ptr;
 }
 
@@ -1114,7 +1114,7 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
 {
     /* Add the option for block of statements */
     if(!setjmp(sync_env))
-        fprintf(stdout, "Setjmp!\n");
+        fprintf(stdout, "Setjmp for parser!\n");
 
     if(token_list[*token_position].type == EOF_TOKEN)
         return ast;
@@ -1132,14 +1132,52 @@ static AST *parser(Token *token_list)
     return statement(token_list, &token_position, ast);
 }
 
+/* Evaluation part of the code */
+
 static ValueTagged *evaluate(AST *);
+
+/* Function that deals with runtime error by jumping to next stmt */
+static void runtime_error_mode(void)
+{
+    longjmp(sync_env, TRUE);
+}
+
+/* Function that prints an error */
+static void runtime_error(AST *node, char *msg) 
+{
+    fprintf(stderr, "Runtime error line: %d at '%s', %s\n", node->data.token->line_number, node->data.token->lexeme, msg);
+}
+
+/* Function that is used to print the result of evaluation */
+static void eval_print(ValueTagged *result)
+{ 
+    switch (result->type)
+    {
+    case NUMBER_INT:
+        fprintf(stdout, "Value INT = %d\n", result->literal.integer_value);
+        break;
+    case NUMBER_FLOAT:
+        fprintf(stdout, "Value FLOAT = %lf\n", result->literal.float_value);
+        break;
+    case STRING:
+         fprintf(stdout, "Value STRING = %s\n", result->literal.char_value);
+        break;
+    case TRUE_TOKEN:
+    case FALSE_TOKEN:
+          fprintf(stdout, "Value BOOLEAN = %d\n", result->literal.boolean_value);
+        break;
+   default:
+        error("Tried to print undefined undefined ValueTagged value in eval_print", __FILE__, __LINE__);
+        break;
+    }
+}
 
 /* Function that returns value of AST node */
 static ValueTagged *literal_value(AST *node)
 {
     if(node->tag != AST_LITERAL) 
     {
-        error("Tried to return non-literal node.");
+        error("Tried to return non-literal node.", __FILE__, __LINE__);
         abort();
     }
     
@@ -1166,12 +1204,6 @@ static Value is_truth(ValueTagged *value, TokenType type)
 /* Function that evaluates unary expression */
 static ValueTagged *evaulate_unary_expression(AST *node)
 {
-    if(node->tag != AST_UNARY) 
-    {
-        error("Tried to evaluate non-unary node!");
-        abort();
-    }
-
     ValueTagged *right = evaluate(node->data.AST_UNARY.right);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     TokenType operator_type = node->data.AST_UNARY.token->type;
@@ -1181,8 +1213,9 @@ static ValueTagged *evaulate_unary_expression(AST *node)
     {
         case SUBTRACT:
         {
-            if(right->type == STRING) {
-                TODO("Throw an error for string value -");
+            if(right->type == STRING) 
+            {
+                runtime_error(node->data.AST_UNARY.right, "Can't do unary subtract operation on strings!");
                 break;
             }
 
@@ -1200,9 +1233,14 @@ static ValueTagged *evaulate_unary_expression(AST *node)
         }
         case XOR:
         {
-            if(right->type == STRING || right->type == NUMBER_FLOAT) 
+            if(right->type == STRING) 
             {
-                TODO("Throw an error for float value ~");
+                runtime_error(node->data.AST_UNARY.right, "Can't do unary XOR operation on strings!");
+                break;
+            }
+            if(right->type == NUMBER_FLOAT) 
+            {
+                runtime_error(node->data.AST_UNARY.right, "Can't do unary subtract operation on float!");
                 break;
             }
             if(right->type == NUMBER_INT)
@@ -1222,15 +1260,17 @@ static ValueTagged *evaulate_unary_expression(AST *node)
             return (result->type = (result->literal.boolean_value) ? TRUE_TOKEN : FALSE_TOKEN, result);
         }
         default:
-            error("Unallowed operator on unary expression!"); 
+            error("Unallowed operator on unary expression!", __FILE__, __LINE__); 
             break;
     }
 
     free(result);
     free(right);
+    runtime_error_mode();
     abort();
 }
 
+/* Function that evaluates binary expression */
 static ValueTagged *evaluate_binary_expression(AST *node)
 {
 
@@ -1242,8 +1282,15 @@ static ValueTagged *evaluate_binary_expression(AST *node)
     switch(operator_type)
     {
         case EXCLAMATION_EQUEAL:
-            if(left->type == STRING || right->type == STRING)
+            if(left->type == STRING || right->type == STRING) {
+                runtime_error(node->data.AST_BINARY.left, "Can't do binary != operation on strings!");
+                break;
+            }
                 TODO("Implement difference for string values.");
+            if(right->type == STRING) {
+                runtime_error(node->data.AST_BINARY.left, "Can't do binary != operation on strings!");
+                break;
+            }
             BINARY_COMPARISON_OPERATION(!=, left, right, result);
             return (free(left), free(right), result);
         case DOUBLE_EQUAL:
@@ -1289,8 +1336,10 @@ static ValueTagged *evaluate_binary_expression(AST *node)
             return (free(left), free(right), result);
         case ADD:
         {
-            if(left->type == STRING && right->type == STRING)
+            if(left->type == STRING && right->type == STRING) {
                 result->literal.char_value = strcat(left->literal.char_value, right->literal.char_value);
+                result->type = STRING;
+            }
             else if(left->type == STRING && right->type == NUMBER_INT)
                 TODO("Add support for STRING + INT = STRING");
             else if(left->type == STRING && right->type == NUMBER_FLOAT)
@@ -1308,8 +1357,15 @@ static ValueTagged *evaluate_binary_expression(AST *node)
     free(left);
     free(right);
     free(result);
+    runtime_error_mode();
     abort();
 } 
+
+/* Function that evaluates grouping expression */
+static ValueTagged *evaulate_grouping_expression(AST *node)
+{
+    return evaluate(node->data.AST_GROUPING.left);
+}
 
 /* Function that calls evaluation of specific node type */
 static ValueTagged *evaluate(AST *node)
@@ -1323,13 +1379,25 @@ static ValueTagged *evaluate(AST *node)
     case AST_BINARY:
         return evaluate_binary_expression(node);
     case AST_GROUPING:
+        return evaulate_grouping_expression(node);
     case AST_EXPR:
     case AST_ASSIGN_EXPR:
     default:
         break;
     }
-    error("Tried to evaluate undefined AST node type.");
+    error("Tried to evaluate undefined AST node type.", __FILE__, __LINE__);
     return NULL;
+}
+
+/* Function that interprets expressions*/
+static void interpret(AST *expr)
+{
+    if(setjmp(sync_env)) return;
+    else
+        fprintf(stdout, "Setjmp for interpreter!\n");
+
+    ValueTagged *value = evaluate(expr);
+    eval_print(value);
 }
 
 // TODO: ./execution does not work
@@ -1355,7 +1423,7 @@ int main(void)
 
     /*Clear the terminal at start*/
     clear_terminal();
-    printf("num %lf\n", (double)54/(double)32);
+
     while (TRUE)
     {
         char **tokens;
@@ -1371,26 +1439,7 @@ int main(void)
             ast = parser(ctox);
             if(ast != NULL){
                 ast_print(ast);
-                ValueTagged *value = evaluate(ast);
-                switch (value->type)
-                {
-                case NUMBER_INT:
-                    fprintf(stdout, "Value INT = %d\n", value->literal.integer_value);
-                    break;
-                case NUMBER_FLOAT:
-                    fprintf(stdout, "Value FLOAT = %lf\n", value->literal.float_value);
-                    break;
-                case STRING:
-                     fprintf(stdout, "Value STRING = %s\n", value->literal.char_value);
-                    break;
-                case TRUE_TOKEN:
-                case FALSE_TOKEN:
-                      fprintf(stdout, "Value BOOLEAN = %d\n", value->literal.boolean_value);
-                    break;
-               default:
-                    error("errrrrror!");
-                    break;
-                }
+                interpret(ast);
                 ast_free(ast); 
             }
             // exec(pcmd);
