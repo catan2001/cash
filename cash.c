@@ -34,6 +34,7 @@ SOFTWARE.
 #define TRUE 1
 #define FALSE 0
 #define ERROR -1
+#define USER_ERROR 300
 
 /* Maximum size of the input line */
 #define MAX_LINE_SIZE 1000
@@ -168,8 +169,6 @@ SOFTWARE.
         (result)->type = (result->literal.boolean_value) ? TRUE_TOKEN : FALSE_TOKEN;                            \
     } while (0)
 
-static jmp_buf sync_env;
-
 /* Enumerating type for defining token type */
 typedef enum value_t
 {
@@ -287,7 +286,8 @@ struct AST
     enum tag
     {
         AST_LITERAL,
-        AST_EXPR,
+        AST_EXPR_STMT,
+        AST_PRINT_STMT,
         AST_ASSIGN_EXPR,
         AST_BINARY,
         AST_UNARY,
@@ -296,7 +296,8 @@ struct AST
     union 
     {
         Token *token;
-        struct AST_EXPR {AST *left; Token *token; AST *right;} AST_EXPR;
+        struct AST_EXPR {AST *expr;} AST_EXPR_STMT;
+        struct AST_PRINT_STMT {AST *expr;} AST_PRINT_STMT;
         struct AST_ASSIGN_EXPR {AST *left; Token *token; AST *right;} AST_ASSIGN_EXPR;
         struct AST_GROUPING {AST *left; Token *token;} AST_GROUPING;
         struct AST_BINARY {AST *left; Token *token; AST *right;} AST_BINARY;
@@ -325,7 +326,23 @@ static const ReservedWordMapType reserved_word_map[] = {
     {"eof",     EOF_TOKEN}
 };
 
+/* Globals */
+
 static char pcmd[MAX_LINE_SIZE];
+static jmp_buf sync_env;
+static int error_flag = FALSE;
+
+/* Helper function: sets error flag */
+static void set_error_flag(void)
+{
+    error_flag = TRUE;
+}
+
+/* Helper function: resets error flag */
+static void reset_error_flag(void)
+{
+    error_flag = FALSE;
+}
 
 /*@sigint_handler
 **Function: Signal handler function for SIGINT*/
@@ -583,6 +600,7 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
         {
         case UNUSED_CHARACTERS:
             fprintf(stderr, "error: Character is not allowed in Cash!\n\t Error at: %d! \n", i);
+            set_error_flag();
             free(cmd);
             exit(EXIT_FAILURE);
 
@@ -613,13 +631,15 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
             if (head_position < i)
             {
                 fprintf(stderr,"error: Syntax Error at %d! Expected valid separator after identifier.\n", i);
+                set_error_flag();
                 return tokens;
             }
 
             while(cmd[++i] != '"') {
                 /*Report a warning if quotes are unterminated*/
                 if(cmd[i] == '\n' || cmd[i] == '\0') { // In future change to when it reaches EOF
-                    fprintf(stderr, "warning: Unterminated string at %d! \n", i);
+                    fprintf(stderr, "error: Unterminated string at %d! \n", i);
+                    set_error_flag();
                     break;
                     //return tokens;
                 } 
@@ -627,6 +647,7 @@ static char **tokenizer(char *cmd, size_t *token_cnt)
             /*Report an error if an quotes are followed by an identifier*/
             if(type_of_character(cmd[i+1]) == OTHER) {
                 fprintf(stderr, "error: Syntax Error at %d! Unexpected token.\n", i);
+                set_error_flag();
                 return tokens;   
             }
             /*Temporarily save character and null terminate*/
@@ -693,6 +714,7 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
         if (ctoken[i].type == FAILED_TO_CLASSIFY)
         {
             fprintf(stderr, "error: Failed to classify token %s\n", token[i]);
+            set_error_flag();
             /*Free all allocated memory before exiting*/ 
             for (size_t j = 0; j < (i + 1); j++)
                 free(ctoken[j].lexeme);
@@ -722,7 +744,7 @@ static Token *token_classifier(char **token, const size_t number_of_tokens, size
 /* Helper function for returning next iteration of token_list */
 static int next_position(size_t *current_position, Token *token_list)
 {
-    if(token_list[*current_position+1].type == EOF_TOKEN)
+    if(token_list[*current_position+1].type == EOF_TOKEN || token_list[*current_position].type == EOF_TOKEN)
         return 1;
         
     (*current_position)++;
@@ -751,11 +773,16 @@ static void ast_print(AST *ast)
 
     switch(ast->tag)
     {
-        case AST_EXPR: 
+        case AST_EXPR_STMT: 
         {
-            fprintf(stdout, "Expression Node: %s\n", ast->data.AST_BINARY.token->lexeme);
-            ast_print(ast->data.AST_EXPR.left);
-            ast_print(ast->data.AST_EXPR.right);
+            fprintf(stdout, "Expression Statement Node.\n");
+            ast_print(ast->data.AST_EXPR_STMT.expr);
+            break;
+        }
+        case AST_PRINT_STMT: 
+        {
+            fprintf(stdout, "Print statement Node.\n");
+            ast_print(ast->data.AST_PRINT_STMT.expr);
             break;
         }
         case AST_ASSIGN_EXPR:
@@ -793,10 +820,14 @@ static void ast_free(AST *ast)
     }
     switch(ast->tag)
     {
-        case AST_EXPR: 
+        case AST_EXPR_STMT: 
         {
-            ast_free(ast->data.AST_EXPR.left);
-            ast_free(ast->data.AST_EXPR.right);
+            ast_free(ast->data.AST_EXPR_STMT.expr);
+            break;
+        }
+        case AST_PRINT_STMT: 
+        {
+            ast_free(ast->data.AST_PRINT_STMT.expr);
             break;
         }
         case AST_ASSIGN_EXPR:
@@ -863,6 +894,7 @@ static void panic_mode(Token *token_list, size_t *token_position)
 
 static void parser_error(Token token, char *msg)
 {
+    set_error_flag();
     if(token.type == EOF_TOKEN)
         fprintf(stderr, "Error line: %d at end %s\n", token.line_number, msg);
     else
@@ -1043,8 +1075,8 @@ static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-/* Function that implements EQL rule of grammar */
-static AST *equality(Token *token_list, size_t *token_position, AST *ast)
+/* Function that implements EXPR rule of grammar */
+static AST *expression(Token *token_list, size_t *token_position, AST *ast)
 {
     ast = comparison(token_list, token_position, ast);
     
@@ -1103,33 +1135,83 @@ static AST *comma_expression(Token *token_list, size_t *token_position, AST* ast
 }
 */
 
-/* Function that implements EXPR rule of grammar */
-static AST *expression(Token *token_list, size_t *token_position, AST *ast)
+/* Function that implements EXPR-STMT rule of grammar */
+static AST *expression_statement(Token *token_list, size_t *token_position, AST *ast)
 {
-   return equality(token_list, token_position, ast);
+    ast = expression(token_list, token_position, ast);
+    ast = ast_new((AST)
+        {
+    
+            .tag = AST_EXPR_STMT,
+            .data.AST_EXPR_STMT = {
+                ast,
+            }
+        }            
+    );
+    if(token_list[*token_position].type != SEMICOLON) {
+        fprintf(stderr, "Expected ';' at the end of the expression.\n");
+        set_error_flag();
+    }
+    return ast;
 }
 
+/* Function that implements PRINT-STMT rule of grammar */
+static AST *print_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    ast = expression(token_list, token_position, ast);
+    ast = ast_new((AST)
+        {
+            .tag = AST_PRINT_STMT,
+            .data.AST_PRINT_STMT = {
+                ast,
+            }
+        }            
+    );
+    if(token_list[*token_position].type != SEMICOLON) {
+        fprintf(stderr, "Expected ';' at the end of the print expression.\n");
+        set_error_flag();
+    }
+    return ast;
+}
 /* Function that implements STAT rule of grammar */
 static AST *statement(Token *token_list, size_t *token_position, AST *ast)
 {
-    /* Add the option for block of statements */
     if(!setjmp(sync_env))
         fprintf(stdout, "Setjmp for parser!\n");
 
     if(token_list[*token_position].type == EOF_TOKEN)
         return ast;
-
-    ast = expression(token_list, token_position, ast);
-    /* Define what type statement is */
-    return ast;
+    
+    /* print statement rule */
+    if(token_list[*token_position].type == PRINTF) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected expression after printf!\n");
+            set_error_flag();
+            return ast;
+        }
+        return print_statement(token_list, token_position, ast);
+    }
+    /* Regular expression statement */
+    return expression_statement(token_list, token_position, ast);
 }
 
 /* Function that parses tokens into AST using grammar rules*/
-static AST *parser(Token *token_list) 
+static AST **parser(Token *token_list, size_t *statement_number) 
 {
     size_t token_position = 0;
-    AST *ast = NULL;
-    return statement(token_list, &token_position, ast);
+    size_t num_of_stmt = 0;
+    AST **ast = NULL;
+    *statement_number = 0;
+    do {
+        ast = realloc(ast, sizeof(AST *)*(num_of_stmt+1));
+        ast[num_of_stmt] = (ast[num_of_stmt] = NULL, statement(token_list, &token_position, ast[num_of_stmt]));
+        if(ast[num_of_stmt] != NULL) {
+            num_of_stmt++;
+        }
+        printf("Number of statements parsed: %d\n\n", num_of_stmt);
+    } while(!next_position(&token_position, token_list));
+    *statement_number = num_of_stmt;
+    return ast;
 }
 
 /* Evaluation part of the code */
@@ -1202,7 +1284,7 @@ static Value is_truth(ValueTagged *value, TokenType type)
 /* Evaluate part of the Interpreter */
 
 /* Function that evaluates unary expression */
-static ValueTagged *evaulate_unary_expression(AST *node)
+static ValueTagged *evaluate_unary_expression(AST *node)
 {
     ValueTagged *right = evaluate(node->data.AST_UNARY.right);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
@@ -1279,81 +1361,60 @@ static ValueTagged *evaluate_binary_expression(AST *node)
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     TokenType operator_type = node->data.AST_BINARY.token->type;
     
-    switch(operator_type)
-    {
-        case EXCLAMATION_EQUEAL:
-            if(left->type == STRING || right->type == STRING) {
-                runtime_error(node->data.AST_BINARY.left, "Can't do binary != operation on strings!");
-                break;
-            }
-                TODO("Implement difference for string values.");
-            if(right->type == STRING) {
-                runtime_error(node->data.AST_BINARY.left, "Can't do binary != operation on strings!");
-                break;
-            }
-            BINARY_COMPARISON_OPERATION(!=, left, right, result);
-            return (free(left), free(right), result);
-        case DOUBLE_EQUAL:
-            if(left->type == STRING || right->type == STRING)
-                TODO("Implement equality for string values.");
-            BINARY_COMPARISON_OPERATION(==, left, right, result); 
-            return (free(left), free(right), result);
-        case REDIRECTION_RIGHT_GREATER_RELATIONAL:
-            if(left->type == STRING || right->type == STRING)
-                TODO("Implement greater for string values.");
-            BINARY_COMPARISON_OPERATION(>, left, right, result); 
-            return (free(left), free(right), result);
-        case REDIRECTION_LEFT_LESS_RELATIONAL:
-            if(left->type == STRING || right->type == STRING)
-                TODO("Implement less for string values.");
-            BINARY_COMPARISON_OPERATION(<, left, right, result);
-            return (free(left), free(right), result);
-        case GREATER_EQUAL:
-            if(left->type == STRING || right->type == STRING)
-                TODO("Implement greater or equal for string values.");
-            BINARY_COMPARISON_OPERATION(>=, left, right, result);
-            return (free(left), free(right), result);
-        case LESS_EQUAL:
-            if(left->type == STRING || right->type == STRING)
-                TODO("Implement less or equal for string values.");
-            BINARY_COMPARISON_OPERATION(<=, left, right, result);
-            return (free(left), free(right), result);
-        case SUBTRACT:
-            if(left->type == STRING || right->type == STRING)
-                TODO("Implement subtract for string values.");
-            BINARY_ADD_SUB_MULTIPLY_OPERATION(-, left, right, result);
-            return (free(left), free(right), result);          
-        case MULTIPLY:
-            if(left->type == STRING || right->type == STRING)
-                TODO("Implement multiply for string values.");
-            BINARY_ADD_SUB_MULTIPLY_OPERATION(*, left, right, result);
-            return (free(left), free(right), result);
-        case DIVIDE:
-            if(left->type == STRING || right->type == STRING) {
-                TODO("Implement error for divide of string values.");
-            }
-            BINARY_DIVIDE_OPERATION(/, left, right, result);
-            return (free(left), free(right), result);
-        case ADD:
-        {
-            if(left->type == STRING && right->type == STRING) {
-                result->literal.char_value = strcat(left->literal.char_value, right->literal.char_value);
-                result->type = STRING;
-            }
-            else if(left->type == STRING && right->type == NUMBER_INT)
-                TODO("Add support for STRING + INT = STRING");
-            else if(left->type == STRING && right->type == NUMBER_FLOAT)
-                TODO("Add support for STRING + INT = STRING");
-            else if(left->type != STRING && right->type != STRING)
-                BINARY_ADD_SUB_MULTIPLY_OPERATION(+, left, right, result);
-            else
-                break;
-
-            return (free(left), free(right), result);
-        }
-        default:
-            break;
+    if((left->type == STRING || right->type == STRING) && operator_type != ADD){
+        (left->type == STRING) ? runtime_error(node->data.AST_BINARY.left, "Binary operator is not allowed on strings!")
+                               : runtime_error(node->data.AST_BINARY.right, "Binary operator is not allowed on strings!");
     }
+    else
+        switch(operator_type)
+        {
+            case EXCLAMATION_EQUEAL:
+                BINARY_COMPARISON_OPERATION(!=, left, right, result);
+                return (free(left), free(right), result);
+            case DOUBLE_EQUAL:
+                BINARY_COMPARISON_OPERATION(==, left, right, result); 
+                return (free(left), free(right), result);
+            case REDIRECTION_RIGHT_GREATER_RELATIONAL:
+                BINARY_COMPARISON_OPERATION(>, left, right, result); 
+                return (free(left), free(right), result);
+            case REDIRECTION_LEFT_LESS_RELATIONAL:
+                BINARY_COMPARISON_OPERATION(<, left, right, result);
+                return (free(left), free(right), result);
+            case GREATER_EQUAL:
+                BINARY_COMPARISON_OPERATION(>=, left, right, result);
+                return (free(left), free(right), result);
+            case LESS_EQUAL:
+                BINARY_COMPARISON_OPERATION(<=, left, right, result);
+                return (free(left), free(right), result);
+            case SUBTRACT:
+                BINARY_ADD_SUB_MULTIPLY_OPERATION(-, left, right, result);
+                return (free(left), free(right), result);          
+            case MULTIPLY:
+                BINARY_ADD_SUB_MULTIPLY_OPERATION(*, left, right, result);
+                return (free(left), free(right), result);
+            case DIVIDE:
+                BINARY_DIVIDE_OPERATION(/, left, right, result);
+                return (free(left), free(right), result);
+            case ADD:
+            {
+                if(left->type == STRING && right->type == STRING) {
+                    result->literal.char_value = strcat(left->literal.char_value, right->literal.char_value);
+                    result->type = STRING;
+                }
+                else if(left->type == STRING && right->type == NUMBER_INT)
+                    TODO("Add support for STRING + INT = STRING");
+                else if(left->type == STRING && right->type == NUMBER_FLOAT)
+                    TODO("Add support for STRING + FLOAT = STRING");
+                else if(left->type != STRING && right->type != STRING)
+                    BINARY_ADD_SUB_MULTIPLY_OPERATION(+, left, right, result);
+                else
+                    break;
+
+                return (free(left), free(right), result);
+            }
+            default:
+                break;
+        }
     free(left);
     free(right);
     free(result);
@@ -1367,6 +1428,30 @@ static ValueTagged *evaulate_grouping_expression(AST *node)
     return evaluate(node->data.AST_GROUPING.left);
 }
 
+static ValueTagged * _printf(ValueTagged *result)
+{    
+    switch (result->type)
+    {
+        case NUMBER_INT:
+            fprintf(stdout, "%d\n", result->literal.integer_value);
+            break;
+        case NUMBER_FLOAT:
+            fprintf(stdout, "%lf\n", result->literal.float_value);
+            break;
+        case STRING:
+             fprintf(stdout, "%s\n", result->literal.char_value);
+            break;
+        case TRUE_TOKEN:
+        case FALSE_TOKEN:
+              fprintf(stdout, "%d\n", result->literal.boolean_value);
+            break;
+       default:
+            error("Tried to print undefined undefined ValueTagged value in eval_print", __FILE__, __LINE__);
+            break;
+    }
+    return result;
+}
+
 /* Function that calls evaluation of specific node type */
 static ValueTagged *evaluate(AST *node)
 {   
@@ -1375,12 +1460,16 @@ static ValueTagged *evaluate(AST *node)
     case AST_LITERAL:
         return literal_value(node);
     case AST_UNARY:
-        return evaulate_unary_expression(node);
+        return evaluate_unary_expression(node);
     case AST_BINARY:
         return evaluate_binary_expression(node);
     case AST_GROUPING:
         return evaulate_grouping_expression(node);
-    case AST_EXPR:
+    case AST_EXPR_STMT:
+        return evaluate(node->data.AST_EXPR_STMT.expr);
+    case AST_PRINT_STMT:
+        ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr);
+        return ((ValueTagged *)_printf(result));
     case AST_ASSIGN_EXPR:
     default:
         break;
@@ -1429,31 +1518,44 @@ int main(void)
         char **tokens;
         size_t number_of_tokens = 0;
         size_t number_of_ctokens = 0;
-        AST *ast = NULL;
+        size_t number_of_statements = 0;
+        AST **ast = NULL;
+        reset_error_flag();
         
         read_cmd(pcmd, MAX_LINE_SIZE);
         tokens = tokenizer(pcmd, &number_of_tokens);
-        if (tokens != NULL)
-        {
-            Token *ctox = token_classifier(tokens, number_of_tokens, &number_of_ctokens);
-            ast = parser(ctox);
-            if(ast != NULL){
-                ast_print(ast);
-                interpret(ast);
-                ast_free(ast); 
-            }
-            // exec(pcmd);
-            // Deallocate Heap memory
+        if (tokens == NULL || error_flag) goto DEALLOCATE_TOKENS_LABEL;
 
-            for (size_t i = 0; i < number_of_tokens; ++i) {
-                free(tokens[i]);
+        Token *ctox = token_classifier(tokens, number_of_tokens, &number_of_ctokens);
+        if (tokens == NULL || error_flag) goto DEALLOCATE_CTOKENS_LABEL;
+
+        ast = parser(ctox, &number_of_statements);
+        if(ast == NULL || error_flag) goto DEALLOCATE_AST_LABEL;
+
+        for(size_t i = 0; i < number_of_statements; ++i) 
+            //if(ast[i] != NULL) 
+            {
+                ast_print(ast[i]);
+                interpret(ast[i]);
             }
-            free(tokens);
-            for (size_t i = 0; ctox[i].type != EOF_TOKEN; ++i) {
-                free(ctox[i].lexeme);
-            }
-            free(ctox);
+        /* Deallocate Heap memory */ 
+        DEALLOCATE_AST_LABEL:
+        for(size_t i = 0; i < number_of_statements; ++i)
+            if(ast[i] != NULL) 
+                ast_free(ast[i]);      
+        free(ast); 
+        
+        DEALLOCATE_CTOKENS_LABEL:
+        for (size_t i = 0; ctox[i].type != EOF_TOKEN; ++i) {
+            free(ctox[i].lexeme);
         }
+        free(ctox);
+
+        DEALLOCATE_TOKENS_LABEL:
+        for (size_t i = 0; i < number_of_tokens; ++i) {
+            free(tokens[i]);
+        }
+        free(tokens);
         wait(NULL);
     } 
     return 0;
