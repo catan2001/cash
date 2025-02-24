@@ -70,10 +70,16 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Added runtime error handling function.
 - [x] Added result printing function.
  
+### 23.2.2025.
+- [x] Fixed error handling  
+- [x] Added global error variable
+- [x] Added expression statements
+- [x] Added printf statement
+
 ### NEXT TIME:
-- [ ] Finish error handling
+- [ ] Refactor and clean code
+- [ ] Add global variables
 - [ ] Allocate memory for every new string?
-- [ ] Fix all functions of evaluation.
 - [ ] Fix error function line numbering
 - [ ] Bug when freeing memory for unused characters
 - [ ] Add support for ternary operators

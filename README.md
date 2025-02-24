@@ -175,8 +175,16 @@ More formally, many parser generators use the concept of the FOLLOW set of a non
 
 ### Evaluation
 
+To execute parsed AST, it's necessary to evaluate each node in the tree. We can do it yet again using recursion and checking each node. Doing this will enable us to intrepret each node and continue to it's parent node. 
+
 - Read about REPL.
 
+### [Statements and State](#statements-and-state-side-effect)
+
+State and statements go hand in hand. Since statements, by definition, don’t
+evaluate to a value, they need to do something else to be useful. That something
+is called a side effect. It could mean producing user-visible output or modifying
+some state in the interpreter that can be detected later.
 
 ## References
 
@@ -204,6 +212,10 @@ More formally, many parser generators use the concept of the FOLLOW set of a non
 ### **Error Detection and Recovery:**
 - [What is Error recovery - GFG](https://www.geeksforgeeks.org/what-is-error-recovery/)
 - [Error recovery and Handling - naukri](https://www.naukri.com/code360/library/error-recovery-and-handling)
+
+### **Statements and State, Side effect**
+- [Side Effect - Wikipedia](https://en.wikipedia.org/wiki/Side_effect_(computer_science))
+- [Imperative Programming - Wikipedia](https://en.wikipedia.org/wiki/Imperative_programming)
 
 ### **About Interpreters:**
 - [Crafting Interpreters - Robert Nystorm](https://craftinginterpreters.com/contents.html)

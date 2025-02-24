@@ -33,12 +33,11 @@ The cash interpreting language supports a rich set of operators:
 ```BNF
 Rules:
 **********************************************
-<PROG>        ::=   <STMT>
-<STMT>        ::=   <A-EXPR>
-                    | <EXPR> ("," <EXPR>)* "," <A-EXPR>
-<A-EXPR>      ::=   <EQL>
-<EXPR>        ::=   <EQL>
-<EQL>         ::=   <CMPR> (( "!=" | "==" ) <CMPR> )*
+<PROG>        ::=   <STMT>* <EOF>
+<STMT>        ::=   <EXPR-STMT> | <PRINT-STMT>
+<EXPR-STMT>   ::=   <EXPR> ";"
+<PRINT-STMT>  ::=   "printf" <EXPR> ";"
+<EXPR>        ::=   <CMPR> (( "!=" | "==" ) <CMPR> )*
 <CMPR>        ::=   <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
 <TERM>        ::=   <FACT> (( "-" | "+" ) <FACT> )*
 <FACT>        ::=   <UNRY> (( "/" | "*") <UNRY> )*
@@ -46,6 +45,7 @@ Rules:
                     | <PRIM>
 <PRIM>        ::=   <NUM> | <STR> | "TRUE" | "FALSE" | "NULL"
                     | "(" <EXPR> ")"
+<EOF>         ::= "end of file"
 
 
 Syntax:
