@@ -1,9 +1,34 @@
+/*
+MIT License
+
+Copyright (c) 2024 catan2001
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <setjmp.h>
 #include <string.h>
 #include "coretypes.h"
 #include "error.h"
+#include "environment.h"
 #include "interpreter.h"
 
 static jmp_buf sync_env;
@@ -17,6 +42,7 @@ static void runtime_error_mode(void)
 
 static void eval_print(ValueTagged *result)
 { 
+    if(result == NULL) return;
     switch (result->type)
     {
     case NUMBER_INT:
@@ -205,6 +231,11 @@ static ValueTagged *evaulate_grouping_expression(AST *node)
     return evaluate(node->data.AST_GROUPING.left);
 }
 
+static ValueTagged *evaluate_variable_statement(AST *node)
+{
+    TODO("Finish function");
+}
+
 static ValueTagged * _printf(ValueTagged *result)
 {    
     switch (result->type)
@@ -246,6 +277,8 @@ static ValueTagged *evaluate(AST *node)
     case AST_PRINT_STMT:
         ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr);
         return ((ValueTagged *)_printf(result));
+    case AST_VAR_DECL_STMT:
+        return evaluate_variable_statement(node);
     case AST_ASSIGN_EXPR:
     default:
         break;

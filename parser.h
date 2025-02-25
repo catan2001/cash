@@ -69,17 +69,25 @@ static AST *comparison(Token *, size_t *, AST *);
 *Function that implements EXPR rule of grammar */
 static AST *expression(Token *, size_t *, AST *);
 
+/*@Function: variable_declaration
+*Function that implements VAR-DECL statement rule of grammar*/
+static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast);
+
 /*@Function: expression_statement
-*Function that implements EXPR-STMT rule of grammar */
+*Function that implements EXPR-STMT statement rule of grammar */
 static AST *expression_statement(Token *, size_t *, AST *);
 
 /*@Function: print_statement
-*Function that implements PRINT-STMT rule of grammar */
+*Function that implements PRINT-STMT statement rule of grammar */
 static AST *print_statement(Token *, size_t *, AST *);
 
 /*@Function: statement
-*Function that implements STAT rule of grammar */
+*Function that implements STAT statement rule of grammar */
 static AST *statement(Token *, size_t *, AST *);
+
+/*@Function: declaration
+*Function that implements DECL statement rule of grammar*/
+static AST *declaration(Token *token_list, size_t *token_position, AST *ast);
 
 /*@Function: ast_free
 *Function that deletes AST from current node down */

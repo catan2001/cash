@@ -89,7 +89,6 @@ int main(void)
     // Set up the signal handler for SIGINT to close
     // stdin and stdout streams
     signal(SIGINT, sigint_handler);
-
     /*Clear the terminal at start*/
     clear_terminal();
 
@@ -113,10 +112,10 @@ int main(void)
         if(ast == NULL || error_flag) goto DEALLOCATE_AST_LABEL;
 
         for(size_t i = 0; i < number_of_statements; ++i) 
-            //if(ast[i] != NULL) 
+            if(ast[i] != NULL) 
             {
                 ast_print(ast[i]);
-                interpret(ast[i]);
+                //interpret(ast[i]);
             }
         /* Deallocate Heap memory */ 
         DEALLOCATE_AST_LABEL:

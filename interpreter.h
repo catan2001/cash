@@ -53,6 +53,10 @@ static ValueTagged *evaluate_binary_expression(AST *node);
 *Function that evaluates grouping expression */
 static ValueTagged *evaulate_grouping_expression(AST *node);
 
+/*@Function: evaluate_variable_statement
+*Function that evaluates variable statement*/
+static ValueTagged *evaluate_variable_statement(AST *node);
+
 /*@Function: _printf
 *Function that evaluates result of AST printf */
 static ValueTagged * _printf(ValueTagged *result);

@@ -54,6 +54,10 @@ extern void parser_error(Token, char *);
 *Function that prints an error during runtime*/
 extern void runtime_error(AST *, char *);
 
+/*@Function: environment_error
+*Function that prints an environment error during runtime*/
+extern void environment_error(Token *, char *);
+
 /*@Function: error
 *Displays error msg to stdout */
 extern int error(char *, char *, int );

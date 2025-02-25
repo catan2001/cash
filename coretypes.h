@@ -265,6 +265,20 @@ typedef struct token_s
     int line_number; // Add this after implementing error correction
 } Token;
 
+/*@Type Environment: used for runtime environment */
+typedef struct environment_s
+{
+    ValueTagged *value;
+    char *name;
+} Environment;
+
+/*@Type EnvironmentMap: Environment map with pointer to allocated Environment and its size */
+typedef struct environment_map_s
+{
+    Environment *env;
+    size_t env_size;
+} EnvironmentMap;
+
 /*@Type ReservedWordMapType: Structure used for classifying reserved words */
 typedef struct reserved_word_map_t
 {
@@ -281,6 +295,7 @@ struct AST
     enum tag
     {
         AST_LITERAL,
+        AST_VAR_DECL_STMT,
         AST_EXPR_STMT,
         AST_PRINT_STMT,
         AST_ASSIGN_EXPR,
@@ -291,6 +306,7 @@ struct AST
     union 
     {
         Token *token;
+        struct AST_VAR_DECL_STMT {Token *name; AST *init;} AST_VAR_DECL_STMT;
         struct AST_EXPR {AST *expr;} AST_EXPR_STMT;
         struct AST_PRINT_STMT {AST *expr;} AST_PRINT_STMT;
         struct AST_ASSIGN_EXPR {AST *left; Token *token; AST *right;} AST_ASSIGN_EXPR;

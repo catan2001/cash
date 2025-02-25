@@ -61,6 +61,12 @@ extern void ast_print(AST *ast)
 
     switch(ast->tag)
     {
+        case AST_VAR_DECL_STMT:
+        {
+            fprintf(stdout, "Variable Declaration Statement Node: %s\n", ast->data.AST_VAR_DECL_STMT.name->lexeme);
+            ast_print(ast->data.AST_VAR_DECL_STMT.init);
+            break;
+        }
         case AST_EXPR_STMT: 
         {
             fprintf(stdout, "Expression Statement Node.\n");
@@ -107,6 +113,12 @@ extern void ast_free(AST *ast)
     }
     switch(ast->tag)
     {
+        case AST_VAR_DECL_STMT:
+        {
+            if(ast->data.AST_VAR_DECL_STMT.init != NULL)
+                ast_free(ast->data.AST_VAR_DECL_STMT.init);
+            break;
+        }
         case AST_EXPR_STMT: 
         {
             ast_free(ast->data.AST_EXPR_STMT.expr);
@@ -386,9 +398,11 @@ static AST *expression_statement(Token *token_list, size_t *token_position, AST 
             }
         }            
     );
+
     if(token_list[*token_position].type != SEMICOLON) {
         fprintf(stderr, "Expected ';' at the end of the expression.\n");
         set_error_flag();
+        panic_mode(token_list, token_position);
     }
     return ast;
 }
@@ -404,14 +418,67 @@ static AST *print_statement(Token *token_list, size_t *token_position, AST *ast)
             }
         }            
     );
+
     if(token_list[*token_position].type != SEMICOLON) {
         fprintf(stderr, "Expected ';' at the end of the print expression.\n");
         set_error_flag();
+        panic_mode(token_list, token_position);
     }
     return ast;
 }
 
+static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
+{
+    if(token_list[*token_position].type != IDENTIFIER)
+    {
+        parser_error(token_list[*token_position], "Expected Identifier after var.");
+        return ast;
+    }
+    Token *name = &token_list[*token_position];
+    AST *initializer = NULL;
+    if(next_position(token_position,token_list))
+        parser_error(token_list[*token_position], "Unexpected EOF after var.");
+
+    if(token_list[*token_position].type == EQUAL) {
+        if(next_position(token_position,token_list))
+            parser_error(token_list[*token_position], "Unexpected EOF after initialization of variable.");
+        initializer = expression(token_list, token_position, ast);
+    }
+
+    ast = ast_new((AST)
+        {
+            .tag = AST_VAR_DECL_STMT,
+            .data.AST_VAR_DECL_STMT = {
+                name,
+                initializer
+            }
+        }            
+    );
+
+    if(token_list[*token_position].type != SEMICOLON) {
+        fprintf(stderr, "Expected ';' at the end of the expression.\n");
+        set_error_flag();
+        panic_mode(token_list, token_position);
+    }       
+
+    return ast;
+}
+
 static AST *statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    /* print statement rule */
+    if(token_list[*token_position].type == PRINTF) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected expression after printf!");
+            return ast;
+        }
+        return print_statement(token_list, token_position, ast);
+    }
+    /* Regular expression statement */
+    return expression_statement(token_list, token_position, ast);
+}
+
+static AST *declaration(Token *token_list, size_t *token_position, AST *ast)
 {
     if(!setjmp(sync_env))
         fprintf(stdout, "Setjmp for parser!\n");
@@ -419,17 +486,16 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
     if(token_list[*token_position].type == EOF_TOKEN)
         return ast;
     
-    /* print statement rule */
-    if(token_list[*token_position].type == PRINTF) {
+    if(token_list[*token_position].type == VAR) 
+    {
         if(next_position(token_position, token_list)) {
-            parser_error(token_list[*token_position], "Expected expression after printf!\n");
-            set_error_flag();
+            parser_error(token_list[*token_position], "Expected expression after var.");
             return ast;
         }
-        return print_statement(token_list, token_position, ast);
+        return variable_declaration(token_list, token_position, ast);
     }
-    /* Regular expression statement */
-    return expression_statement(token_list, token_position, ast);
+    
+    return statement(token_list, token_position, ast);
 }
 
 extern AST **parser(Token *token_list, size_t *statement_number) 
@@ -440,12 +506,13 @@ extern AST **parser(Token *token_list, size_t *statement_number)
     *statement_number = 0;
     do {
         ast = realloc(ast, sizeof(AST *)*(num_of_stmt+1));
-        ast[num_of_stmt] = (ast[num_of_stmt] = NULL, statement(token_list, &token_position, ast[num_of_stmt]));
+        ast[num_of_stmt] = (ast[num_of_stmt] = NULL, declaration(token_list, &token_position, ast[num_of_stmt]));
         if(ast[num_of_stmt] != NULL) {
             num_of_stmt++;
         }
         printf("Number of statements parsed: %d\n\n", num_of_stmt);
     } while(!next_position(&token_position, token_list));
+
     *statement_number = num_of_stmt;
     return ast;
 }

@@ -24,51 +24,37 @@ SOFTWARE.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "coretypes.h"
 #include "error.h"
+#include "environment.h"
 
-int error_flag = FALSE;
+EnvironmentMap env_map;
 
-extern void set_error_flag(void)
+extern void reset_environment(void)
 {
-    error_flag = TRUE;
+   if(env_map.env != NULL) free(env_map.env);
+   env_map.env_size = 0;
 }
 
-extern void reset_error_flag(void)
-{
-    error_flag = FALSE;
+extern void define_env_var(char *name, ValueTagged *value) {
+   if(name == NULL) INTERNAL_ERROR("Passed null argument into define_env_var");
+   env_map.env = realloc(env_map.env, sizeof(Environment) * (env_map.env_size + 1));
+   if(env_map.env == NULL) INTERNAL_ERROR("Could not reallocate environment size!");
+
+   env_map.env[env_map.env_size].name = name;
+   env_map.env[env_map.env_size].value = value;
+
+   env_map.env_size++;
 }
 
-extern void sigint_handler(const int sig)
+extern Environment *get_env_var(Token *name)
 {
-    fclose(stdout);
-    fclose(stdin);
-    fprintf(stderr, "\nExiting shell...\n");    
-    exit(EXIT_SUCCESS);
-}
-
-extern void parser_error(Token token, char *msg)
-{
-    set_error_flag();
-    if(token.type == EOF_TOKEN)
-        fprintf(stderr, "Error line: %d at end %s\n", token.line_number, msg);
-    else
-        fprintf(stderr, "Error line: %d at '%s', %s\n", token.line_number, token.lexeme, msg);
-}
-
-extern void runtime_error(AST *node, char *msg) 
-{
-    fprintf(stderr, "Runtime error line: %d at '%s', %s\n", node->data.token->line_number, node->data.token->lexeme, msg);
-}
-
-extern void environment_error(Token *token, char *msg)
-{
-     fprintf(stderr, "Runtime error line: %d at '%s', %s\n", token->lexeme, msg);
-}
-
-extern int error(char *msg, char *file, int line) 
-{
-    fprintf(stderr,"%s: %d ERROR: %s\n", file, line, msg);
-    return EXIT_SUCCESS;
+   for(size_t i = 0; i < env_map.env_size; ++i)
+      if(strcmp(env_map.env[i].name, name->lexeme)) return &env_map.env[i];
+   
+   set_error_flag();
+   environment_error(name, "Undefined variable");
+   return NULL;
 }
 
