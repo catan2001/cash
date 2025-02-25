@@ -76,9 +76,14 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Added expression statements
 - [x] Added printf statement
 
+### 25.2.2025.
+- [x] Separated source code into designated files
+- [x] Refactored code
+- [x] Parsed global variables
+
 ### NEXT TIME:
-- [ ] Refactor and clean code
-- [ ] Add global variables
+- [ ] Finish global variables
+- [ ] Make functions return error codes. Handle them externally
 - [ ] Allocate memory for every new string?
 - [ ] Fix error function line numbering
 - [ ] Bug when freeing memory for unused characters

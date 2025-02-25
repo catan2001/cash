@@ -33,7 +33,9 @@ The cash interpreting language supports a rich set of operators:
 ```BNF
 Rules:
 **********************************************
-<PROG>        ::=   <STMT>* <EOF>
+<PROG>        ::=   <DECL-STMT>* <EOF>
+<DECL-STMT>   ::=   <VAR-DECL> | <STMT>
+<VAR-DECL>    ::=   "var" <ID> ("=" <EXPR>)? ";"
 <STMT>        ::=   <EXPR-STMT> | <PRINT-STMT>
 <EXPR-STMT>   ::=   <EXPR> ";"
 <PRINT-STMT>  ::=   "printf" <EXPR> ";"
@@ -44,26 +46,30 @@ Rules:
 <UNRY>        ::=   ( "!" | "-" ) <UNRY>
                     | <PRIM>
 <PRIM>        ::=   <NUM> | <STR> | "TRUE" | "FALSE" | "NULL"
-                    | "(" <EXPR> ")"
+                    | "(" <EXPR> ")" 
+                    | <ID>
 <EOF>         ::= "end of file"
 
 
 Syntax:
 **********************************************
-<NAME>    -> nonterminal
-"NAME"    -> terminal
+<NAME>      -> nonterminal
+"NAME"      -> terminal
 
 Scheme:
 **********************************************
-<PROG>    -> programm;
-<STMT>    -> statement;
-<EXPR>    -> expression;
-<A-EXPR>  -> assignment-expression;
-<EQL>     -> equality;
-<CMPR>    -> comparison;
-<TERM>    -> term;
-<FACT>    -> factor;
-<UNRY>    -> unary;
-<PRIM>    -> primary;
+<PROG>      -> program;
+<DECL-STMT> -> declaration statement;
+<VAR-DECL>  -> variable declaration statement;
+<STMT>      -> statement;
+<EXPR>      -> expression;
+<A-EXPR>    -> assignment-expression;
+<EQL>       -> equality;
+<CMPR>      -> comparison;
+<TERM>      -> term;
+<FACT>      -> factor;
+<UNRY>      -> unary;
+<PRIM>      -> primary;
+<ID>        -> identifier
 
 ``` 
