@@ -95,6 +95,9 @@ extern void ast_print(AST *ast)
             fprintf(stdout, "Unary Node: %s\n", ast->data.AST_UNARY.token->lexeme);
             ast_print(ast->data.AST_UNARY.right);
             break;
+        case AST_IDENTIFIER:
+            fprintf(stdout, "Identifier node: %s\n", ast->data.token->lexeme);
+            break;
         case AST_LITERAL:
             fprintf(stdout, "Literal Node: %s\n", ast->data.token->lexeme);
             break;
@@ -228,6 +231,14 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
                 next_position(token_position, token_list);
                 return ast;
             }
+        }
+        case IDENTIFIER:
+        {
+            ast = ast_new((AST){
+                .tag = AST_IDENTIFIER,
+                .data.token = &token_list[*token_position]}); 
+            next_position(token_position, token_list);
+            return ast;           
         }
         case ADD: case SUBTRACT: case MULTIPLY: case DIVIDE:
         {

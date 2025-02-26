@@ -268,7 +268,7 @@ typedef struct token_s
 /*@Type Environment: used for runtime environment */
 typedef struct environment_s
 {
-    ValueTagged *value;
+    ValueTagged value;
     char *name;
 } Environment;
 
@@ -295,6 +295,7 @@ struct AST
     enum tag
     {
         AST_LITERAL,
+        AST_IDENTIFIER,
         AST_VAR_DECL_STMT,
         AST_EXPR_STMT,
         AST_PRINT_STMT,

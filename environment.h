@@ -29,6 +29,14 @@ SOFTWARE.
 *Global EnvironmentMap variable */
 extern EnvironmentMap env_map;
 
+/*@Function: copy_val_env
+*Helper function that copies a variable value into particular Environment node */
+static void copy_val_env(ValueTagged *value, Environment *env_value);
+
+/*@Function: delete_env_var
+*Function that deletes particular variable in environment and returns 0 if deleted*/
+extern int delete_env_var(char *name);
+
 /*@Function: reset_environment
 *Function that resets (free) environment */
 extern void reset_environment(void);
@@ -39,6 +47,6 @@ extern void define_env_var(char *, ValueTagged *);
 
 /*@Function: get_env_var
 *Function that tries to find variable name in environment map*/
-extern Environment *get_env_var(Token *);
+extern ValueTagged *get_env_var(Token *);
 
 #endif // ENVIRONMENT_H

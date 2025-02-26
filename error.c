@@ -63,7 +63,7 @@ extern void runtime_error(AST *node, char *msg)
 
 extern void environment_error(Token *token, char *msg)
 {
-     fprintf(stderr, "Runtime error line: %d at '%s', %s\n", token->lexeme, msg);
+     fprintf(stderr, "Runtime error line: %d at '%s', %s\n", token->line_number, msg);
 }
 
 extern int error(char *msg, char *file, int line) 

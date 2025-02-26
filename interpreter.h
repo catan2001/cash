@@ -35,38 +35,42 @@ static void eval_print(ValueTagged *);
 
 /*@Function: is_truth
 *Helper function that returns TRUE, FALSE */
-static Value is_truth(ValueTagged *value, TokenType type);
+static Value is_truth(ValueTagged *, TokenType);
 
 /*@Function: literal_value
 *Function that returns value of AST node */
-static ValueTagged *literal_value(AST *node);
+static ValueTagged *literal_value(AST *);
+
+/*@Function: identifier_value
+*Function that returns value of identifier found in Environment*/
+static ValueTagged *identifier_value(AST *);
 
 /*@Function: evaluate_unary_expression
 *Function that evaluates unary expression */
-static ValueTagged *evaluate_unary_expression(AST *node);
+static ValueTagged *evaluate_unary_expression(AST *);
 
 /*@Function: evaluate_binary expression
 *Function that evaluates binary expression */
-static ValueTagged *evaluate_binary_expression(AST *node);
+static ValueTagged *evaluate_binary_expression(AST *);
 
 /*@Function: evaluate_grouping_expression
 *Function that evaluates grouping expression */
-static ValueTagged *evaulate_grouping_expression(AST *node);
+static ValueTagged *evaulate_grouping_expression(AST *);
 
 /*@Function: evaluate_variable_statement
 *Function that evaluates variable statement*/
-static ValueTagged *evaluate_variable_statement(AST *node);
+static ValueTagged *evaluate_variable_statement(AST *); 
 
 /*@Function: _printf
 *Function that evaluates result of AST printf */
-static ValueTagged * _printf(ValueTagged *result);
+static ValueTagged * _printf(ValueTagged *);
 
 /*@Function: evaluate
 *Function that calls evaluation of specific node type */
-static ValueTagged *evaluate(AST *node);
+static ValueTagged *evaluate(AST *);
 
 /*@Function: interpret
 *Function that interprets expressions*/
-extern void interpret(AST *expr);
+extern void interpret(AST *);
 
 #endif // INTERPRETER_H

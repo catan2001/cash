@@ -115,7 +115,7 @@ int main(void)
             if(ast[i] != NULL) 
             {
                 ast_print(ast[i]);
-                //interpret(ast[i]);
+                interpret(ast[i]);
             }
         /* Deallocate Heap memory */ 
         DEALLOCATE_AST_LABEL:
