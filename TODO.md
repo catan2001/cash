@@ -81,7 +81,12 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Refactored code
 - [x] Parsed global variables
 
+### 26.2.2025.
+- [x] Refactored code
+- [x] Fixed Identifier functions 
+
 ### NEXT TIME:
+- [ ] Deal with null types
 - [ ] Finish global variables
 - [ ] Make functions return error codes. Handle them externally
 - [ ] Allocate memory for every new string?
