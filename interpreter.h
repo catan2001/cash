@@ -57,6 +57,10 @@ static ValueTagged *evaluate_binary_expression(AST *);
 *Function that evaluates grouping expression */
 static ValueTagged *evaulate_grouping_expression(AST *);
 
+/*@Function: evaluate_assign_expression 
+*Function that evaluates assign expression */
+static ValueTagged *evaluate_assign_expression(AST *);
+
 /*@Function: evaluate_variable_statement
 *Function that evaluates variable statement*/
 static ValueTagged *evaluate_variable_statement(AST *); 

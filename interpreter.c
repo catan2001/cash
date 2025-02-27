@@ -83,7 +83,7 @@ static ValueTagged *identifier_value(AST *node)
         INTERNAL_ERROR("Tried to return non-identifier node.");
         abort();
     }
-    ValueTagged *found = get_env_var(node->data.token);
+    ValueTagged *found = env_get_var(node->data.token);
     if(found == NULL) return NULL;
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     return (result->literal = found->literal, result->type = found->type, result);
@@ -104,9 +104,9 @@ static Value is_truth(ValueTagged *value, TokenType type)
 
 static ValueTagged *evaluate_unary_expression(AST *node)
 {
-    ValueTagged *right = evaluate(node->data.AST_UNARY.right);
+    ValueTagged *right = evaluate(node->data.AST_UNARY_EXPR.right);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
-    TokenType operator_type = node->data.AST_UNARY.token->type;
+    TokenType operator_type = node->data.AST_UNARY_EXPR.token->type;
     result->type = right->type;
 
     switch(operator_type)
@@ -115,7 +115,7 @@ static ValueTagged *evaluate_unary_expression(AST *node)
         {
             if(right->type == STRING) 
             {
-                runtime_error(node->data.AST_UNARY.right, "Can't do unary subtract operation on strings!");
+                runtime_error(node->data.AST_UNARY_EXPR.right, "Can't do unary subtract operation on strings!");
                 break;
             }
 
@@ -135,12 +135,12 @@ static ValueTagged *evaluate_unary_expression(AST *node)
         {
             if(right->type == STRING) 
             {
-                runtime_error(node->data.AST_UNARY.right, "Can't do unary XOR operation on strings!");
+                runtime_error(node->data.AST_UNARY_EXPR.right, "Can't do unary XOR operation on strings!");
                 break;
             }
             if(right->type == NUMBER_FLOAT) 
             {
-                runtime_error(node->data.AST_UNARY.right, "Can't do unary subtract operation on float!");
+                runtime_error(node->data.AST_UNARY_EXPR.right, "Can't do unary subtract operation on float!");
                 break;
             }
             if(right->type == NUMBER_INT)
@@ -172,14 +172,14 @@ static ValueTagged *evaluate_unary_expression(AST *node)
 
 static ValueTagged *evaluate_binary_expression(AST *node)
 {
-    ValueTagged *left = evaluate(node->data.AST_BINARY.left);
-    ValueTagged *right = evaluate(node->data.AST_BINARY.right);
+    ValueTagged *left = evaluate(node->data.AST_BINARY_EXPR.left);
+    ValueTagged *right = evaluate(node->data.AST_BINARY_EXPR.right);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
-    TokenType operator_type = node->data.AST_BINARY.token->type;
+    TokenType operator_type = node->data.AST_BINARY_EXPR.token->type;
 
     if((left->type == STRING || right->type == STRING) && operator_type != ADD){
-        (left->type == STRING) ? runtime_error(node->data.AST_BINARY.left, "Binary operator is not allowed on strings!")
-                               : runtime_error(node->data.AST_BINARY.right, "Binary operator is not allowed on strings!");
+        (left->type == STRING) ? runtime_error(node->data.AST_BINARY_EXPR.left, "Binary operator is not allowed on strings!")
+                               : runtime_error(node->data.AST_BINARY_EXPR.right, "Binary operator is not allowed on strings!");
     }
     else
         switch(operator_type)
@@ -242,7 +242,15 @@ static ValueTagged *evaluate_binary_expression(AST *node)
 
 static ValueTagged *evaulate_grouping_expression(AST *node)
 {
-    return evaluate(node->data.AST_GROUPING.left);
+    return evaluate(node->data.AST_GROUPING_EXPR.left);
+}
+
+static ValueTagged *evaluate_assign_expression(AST *node)
+{
+    ValueTagged *value = evaluate(node->data.AST_ASSIGN_EXPR.expr);
+    Token *name = node->data.AST_ASSIGN_EXPR.token;
+    env_assign_var(name, value);
+    return value;
 }
 
 static ValueTagged *evaluate_variable_statement(AST *node)
@@ -252,7 +260,7 @@ static ValueTagged *evaluate_variable_statement(AST *node)
     if(node->data.AST_VAR_DECL_STMT.init != NULL) 
         value = evaluate(node->data.AST_VAR_DECL_STMT.init);
          
-    define_env_var(name->lexeme, value);
+    env_define_var(name, value);
     return value;            
 }
 
@@ -267,11 +275,11 @@ static ValueTagged * _printf(ValueTagged *result)
             fprintf(stdout, "%lf\n", result->literal.float_value);
             break;
         case STRING:
-             fprintf(stdout, "%s\n", result->literal.char_value);
+            fprintf(stdout, "%s\n", result->literal.char_value);
             break;
         case TRUE_TOKEN:
         case FALSE_TOKEN:
-              fprintf(stdout, "%d\n", result->literal.boolean_value);
+            fprintf(stdout, "%d\n", result->literal.boolean_value);
             break;
        default:
             error("Tried to print undefined undefined ValueTagged value in eval_print", __FILE__, __LINE__);
@@ -288,12 +296,14 @@ static ValueTagged *evaluate(AST *node)
         return literal_value(node);
     case AST_IDENTIFIER:
         return identifier_value(node); 
-    case AST_UNARY:
+    case AST_UNARY_EXPR:
         return evaluate_unary_expression(node);
-    case AST_BINARY:
+    case AST_BINARY_EXPR:
         return evaluate_binary_expression(node);
-    case AST_GROUPING:
+    case AST_GROUPING_EXPR:
         return evaulate_grouping_expression(node);
+    case AST_ASSIGN_EXPR:
+        return evaluate_assign_expression(node);
     case AST_EXPR_STMT:
         return evaluate(node->data.AST_EXPR_STMT.expr);
     case AST_PRINT_STMT:
@@ -301,7 +311,6 @@ static ValueTagged *evaluate(AST *node)
         return ((ValueTagged *)_printf(result));
     case AST_VAR_DECL_STMT:
         return evaluate_variable_statement(node);
-    case AST_ASSIGN_EXPR:
     default:
         break;
     }

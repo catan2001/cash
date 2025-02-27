@@ -81,19 +81,18 @@ extern void ast_print(AST *ast)
         }
         case AST_ASSIGN_EXPR:
         {
-            fprintf(stdout, "Assignment Expression Node: %s\n", ast->data.AST_BINARY.token->lexeme);
-            ast_print(ast->data.AST_ASSIGN_EXPR.left);
-            ast_print(ast->data.AST_ASSIGN_EXPR.right);
+            fprintf(stdout, "Assignment Expression Node: %s\n", ast->data.AST_ASSIGN_EXPR.token->lexeme);
+            ast_print(ast->data.AST_ASSIGN_EXPR.expr);
             break;               
         }
-        case AST_BINARY:
-            fprintf(stdout, "Binary Node: %s\n", ast->data.AST_BINARY.token->lexeme);
-            ast_print(ast->data.AST_BINARY.left);
-            ast_print(ast->data.AST_BINARY.right);
+        case AST_BINARY_EXPR:
+            fprintf(stdout, "Binary Node: %s\n", ast->data.AST_BINARY_EXPR.token->lexeme);
+            ast_print(ast->data.AST_BINARY_EXPR.left);
+            ast_print(ast->data.AST_BINARY_EXPR.right);
             break;
-        case AST_UNARY:
-            fprintf(stdout, "Unary Node: %s\n", ast->data.AST_UNARY.token->lexeme);
-            ast_print(ast->data.AST_UNARY.right);
+        case AST_UNARY_EXPR:
+            fprintf(stdout, "Unary Node: %s\n", ast->data.AST_UNARY_EXPR.token->lexeme);
+            ast_print(ast->data.AST_UNARY_EXPR.right);
             break;
         case AST_IDENTIFIER:
             fprintf(stdout, "Identifier node: %s\n", ast->data.token->lexeme);
@@ -134,24 +133,23 @@ extern void ast_free(AST *ast)
         }
         case AST_ASSIGN_EXPR:
         {
-            ast_free(ast->data.AST_ASSIGN_EXPR.left);
-            ast_free(ast->data.AST_ASSIGN_EXPR.right);
+            ast_free(ast->data.AST_ASSIGN_EXPR.expr);
             break;               
         }
-        case AST_BINARY: 
+        case AST_BINARY_EXPR: 
         {
-            ast_free(ast->data.AST_BINARY.left);
-            ast_free(ast->data.AST_BINARY.right);
+            ast_free(ast->data.AST_BINARY_EXPR.left);
+            ast_free(ast->data.AST_BINARY_EXPR.right);
             break;
         }
-        case AST_UNARY: 
+        case AST_UNARY_EXPR: 
         {
-            ast_free(ast->data.AST_UNARY.right);
+            ast_free(ast->data.AST_UNARY_EXPR.right);
             break;
         }
-        case AST_GROUPING:
+        case AST_GROUPING_EXPR:
         {
-            ast_free(ast->data.AST_GROUPING.left);
+            ast_free(ast->data.AST_GROUPING_EXPR.left);
             break;
         }
         default:
@@ -268,8 +266,8 @@ static AST *unary(Token *token_list, size_t *token_position, AST *ast)
         AST *right = unary(token_list, token_position, ast);
         ast = ast_new((AST)
             {
-                .tag = AST_UNARY,
-                .data.AST_UNARY = {
+                .tag = AST_UNARY_EXPR,
+                .data.AST_UNARY_EXPR = {
                     right,
                     operator,
                 }
@@ -297,8 +295,8 @@ static AST *factor(Token *token_list, size_t *token_position, AST *ast)
         AST *right = unary(token_list, token_position, ast);
         ast = ast_new((AST)
             {
-                .tag = AST_BINARY,
-                .data.AST_BINARY = {
+                .tag = AST_BINARY_EXPR,
+                .data.AST_BINARY_EXPR = {
                     ast,
                     operator,
                     right
@@ -325,8 +323,8 @@ static AST *term(Token *token_list, size_t *token_position, AST *ast)
         AST *right = factor(token_list, token_position, ast);
         ast = ast_new((AST)
             {
-                .tag = AST_BINARY,
-                .data.AST_BINARY = {
+                .tag = AST_BINARY_EXPR,
+                .data.AST_BINARY_EXPR = {
                     ast,
                     operator,
                     right
@@ -355,8 +353,8 @@ static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
         AST *right = term(token_list, token_position, ast);
         ast = ast_new((AST)
             {
-                .tag = AST_BINARY,
-                .data.AST_BINARY = {
+                .tag = AST_BINARY_EXPR,
+                .data.AST_BINARY_EXPR = {
                     ast,
                     operator,
                     right
@@ -368,7 +366,7 @@ static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-static AST *expression(Token *token_list, size_t *token_position, AST *ast)
+static AST *equality(Token *token_list, size_t *token_position, AST *ast)
 {
     ast = comparison(token_list, token_position, ast);
     
@@ -384,8 +382,8 @@ static AST *expression(Token *token_list, size_t *token_position, AST *ast)
         AST *right = comparison(token_list, token_position, ast);
         ast = ast_new((AST)
             {
-                .tag = AST_BINARY,
-                .data.AST_BINARY = {
+                .tag = AST_BINARY_EXPR,
+                .data.AST_BINARY_EXPR = {
                     ast,
                     operator,
                     right
@@ -395,6 +393,50 @@ static AST *expression(Token *token_list, size_t *token_position, AST *ast)
     }
     
     return ast;
+}
+
+static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
+{
+    ast = equality(token_list, token_position, ast);
+
+    if(token_list[*token_position].type == EQUAL)
+    {
+        printf("Entered equal!\n");
+        Token *equals = &token_list[*token_position];
+        if(next_position(token_position, token_list)) 
+        {
+            parser_error(token_list[*token_position], "Expected expression after '=' sign");
+            panic_mode(token_list, token_position);
+        }
+        AST *value = assignment(token_list, token_position, ast);
+        
+        if(ast->tag == AST_IDENTIFIER)
+        {
+            Token *name = ast->data.token;
+            // Deallocate previously allocated ast.
+            free(ast);
+            ast = ast_new((AST)
+                {  
+                    .tag = AST_ASSIGN_EXPR,
+                    .data.AST_ASSIGN_EXPR = {
+                        name,
+                        value
+                    }
+                }            
+            );
+            return ast;
+        }
+        
+        parser_error(*equals, "Invalid assignment target!");
+        panic_mode(token_list, token_position);
+
+    }
+    return ast;    
+}
+
+static AST *expression(Token *token_list, size_t *token_position, AST *ast)
+{
+    return assignment(token_list, token_position, ast);   
 }
 
 static AST *expression_statement(Token *token_list, size_t *token_position, AST *ast)

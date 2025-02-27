@@ -29,11 +29,16 @@ SOFTWARE.
 #include "error.h"
 #include "environment.h"
 
-EnvironmentMap env_map;
+EnvironmentMap env_map = {.env = NULL, .env_enclosing = NULL, .env_size = 0};
 
-static void copy_val_env(ValueTagged *value, Environment *env_value)
+static void env_copy_value(ValueTagged *value, Environment *env_value)
 {
-   if(value == NULL) return;
+   if(value == NULL) {
+      env_value->value.type = NUMBER_INT;
+      env_value->value.literal.integer_value = 0;
+      return;
+   };
+   
    env_value->value.type = value->type;
    switch (value->type)
    {
@@ -55,7 +60,7 @@ static void copy_val_env(ValueTagged *value, Environment *env_value)
    }
 }
 
-extern int delete_env_var(char *name)
+extern int env_delete_var(char *name)
 {
    for(size_t i = 0; i < env_map.env_size; ++i)
    {
@@ -71,7 +76,7 @@ extern int delete_env_var(char *name)
    return 1;
 }
 
-extern void reset_environment(void)
+extern void env_reset(void)
 {
    for(size_t i = 0; i < env_map.env_size; ++i) 
    {
@@ -82,18 +87,38 @@ extern void reset_environment(void)
    env_map.env_size = 0;
 }
 
-extern void define_env_var(char *name, ValueTagged *value) 
+extern void env_assign_var(Token *name, ValueTagged *value)
 {
-   if(name == NULL) INTERNAL_ERROR("Passed null name argument into define_env_var");
+   if(name == NULL) INTERNAL_ERROR("Passed null name argument.");
+
+   /* Search Environment for the same variable */
+   for(size_t i = 0; i < env_map.env_size; ++i)
+   {
+      if(!strcmp(name->lexeme, env_map.env[i].name))
+      {
+         if(env_map.env[i].value.type == STRING)
+            free(env_map.env[i].value.literal.char_value);
+         env_copy_value(value, &env_map.env[i]); 
+         return;
+      }
+   }
+
+   set_error_flag();
+   environment_error(name, "Undefined variable");
+}
+
+extern void env_define_var(Token *name, ValueTagged *value) 
+{
+   if(name == NULL) INTERNAL_ERROR("Passed null name argument.");
    
    /* Search Environment for the same variable */
    for(size_t i = 0; i < env_map.env_size; ++i)
    {
-      if(!strcmp(name, env_map.env[i].name))
+      if(!strcmp(name->lexeme, env_map.env[i].name))
       {
          if(env_map.env[i].value.type == STRING)
             free(env_map.env[i].value.literal.char_value);
-         copy_val_env(value, &env_map.env[i]); 
+         env_copy_value(value, &env_map.env[i]); 
          return;
       }
    }
@@ -102,12 +127,12 @@ extern void define_env_var(char *name, ValueTagged *value)
    env_map.env = realloc(env_map.env, sizeof(Environment) * (env_map.env_size + 1));
    if(env_map.env == NULL) INTERNAL_ERROR("Could not reallocate environment size!");
 
-   env_map.env[env_map.env_size].name = strdup(name);
-   copy_val_env(value, &env_map.env[env_map.env_size]); 
+   env_map.env[env_map.env_size].name = strdup(name->lexeme);
+   env_copy_value(value, &env_map.env[env_map.env_size]); 
    env_map.env_size++;
 }
 
-extern ValueTagged *get_env_var(Token *name)
+extern ValueTagged *env_get_var(Token *name)
 {
    for(size_t i = 0; i < env_map.env_size; ++i)
       if(!strcmp(env_map.env[i].name, name->lexeme)) return &env_map.env[i].value;

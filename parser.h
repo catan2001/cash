@@ -41,10 +41,6 @@ static void synchronize(Token *, size_t *);
 *Function that is called when error happens */
 static void panic_mode(Token *, size_t *);
 
-/*@Function: expression 
-*Function declaration of EXPR rule */
-static AST *expression(Token *, size_t *, AST *);
-
 /*@Function: primary
 *Function that implements PRIM rule of grammar */
 static AST *primary(Token *, size_t *, AST *);
@@ -64,6 +60,14 @@ static AST *term(Token *, size_t *, AST *);
 /*@Function: comparison
 *Function that implements CMPR rule of grammar */
 static AST *comparison(Token *, size_t *, AST *);
+
+/*@Function: equality
+*Function that implements EQL rule of grammar */
+static AST *equality(Token *, size_t *, AST *);
+
+/*@Function: assignment
+*Function that implements ASSIGN expression rule of grammar */
+static AST *assignment(Token *, size_t *, AST *);
 
 /*@Function: expression
 *Function that implements EXPR rule of grammar */

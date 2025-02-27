@@ -276,6 +276,7 @@ typedef struct environment_s
 typedef struct environment_map_s
 {
     Environment *env;
+    Environment *env_enclosing;
     size_t env_size;
 } EnvironmentMap;
 
@@ -300,9 +301,9 @@ struct AST
         AST_EXPR_STMT,
         AST_PRINT_STMT,
         AST_ASSIGN_EXPR,
-        AST_BINARY,
-        AST_UNARY,
-        AST_GROUPING
+        AST_BINARY_EXPR,
+        AST_UNARY_EXPR,
+        AST_GROUPING_EXPR
     } tag;
     union 
     {
@@ -310,10 +311,10 @@ struct AST
         struct AST_VAR_DECL_STMT {Token *name; AST *init;} AST_VAR_DECL_STMT;
         struct AST_EXPR {AST *expr;} AST_EXPR_STMT;
         struct AST_PRINT_STMT {AST *expr;} AST_PRINT_STMT;
-        struct AST_ASSIGN_EXPR {AST *left; Token *token; AST *right;} AST_ASSIGN_EXPR;
-        struct AST_GROUPING {AST *left; Token *token;} AST_GROUPING;
-        struct AST_BINARY {AST *left; Token *token; AST *right;} AST_BINARY;
-        struct AST_UNARY {AST *right; Token *token;} AST_UNARY;
+        struct AST_ASSIGN_EXPR {Token *token; AST *expr;} AST_ASSIGN_EXPR;
+        struct AST_GROUPING_EXPR {AST *left; Token *token;} AST_GROUPING_EXPR;
+        struct AST_BINARY_EXPR {AST *left; Token *token; AST *right;} AST_BINARY_EXPR;
+        struct AST_UNARY_EXPR {AST *right; Token *token;} AST_UNARY_EXPR;
     } data;
 };  
 
