@@ -198,7 +198,9 @@ typedef enum value_t
     GREATER_EQUAL,       
     LESS_EQUAL,          
     SHIFT_LEFT,          
-    SHIFT_RIGHT,         
+    SHIFT_RIGHT,
+    DOUBLE_AND,
+    DOUBLE_OR,       
 
     /* Literals: */
     IDENTIFIER,          
@@ -303,6 +305,7 @@ struct AST
         AST_VAR_DECL_STMT,
         AST_EXPR_STMT,
         AST_BLOCK_STMT,
+        AST_IF_STMT,
         AST_PRINT_STMT,
         AST_ASSIGN_EXPR,
         AST_BINARY_EXPR,
@@ -315,6 +318,7 @@ struct AST
         struct AST_VAR_DECL_STMT {Token *name; AST *init;} AST_VAR_DECL_STMT;
         struct AST_EXPR_STMT {AST *expr;} AST_EXPR_STMT;
         struct AST_BLOCK_STMT {AST **stmt_list; size_t stmt_num;} AST_BLOCK_STMT;
+        struct AST_IF_STMT {AST *condition; AST *true_branch; AST *else_branch;} AST_IF_STMT;
         struct AST_PRINT_STMT {AST *expr;} AST_PRINT_STMT;
         struct AST_ASSIGN_EXPR {Token *token; AST *expr;} AST_ASSIGN_EXPR;
         struct AST_GROUPING_EXPR {AST *left; Token *token;} AST_GROUPING_EXPR;

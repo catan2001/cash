@@ -75,7 +75,7 @@ static AST *expression(Token *, size_t *, AST *);
 
 /*@Function: variable_declaration
 *Function that implements VAR-DECL statement rule of grammar*/
-static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast);
+static AST *variable_declaration(Token *, size_t *, AST *);
 
 /*@Function: expression_statement
 *Function that implements EXPR-STMT statement rule of grammar */
@@ -84,6 +84,10 @@ static AST *expression_statement(Token *, size_t *, AST *);
 /*@Function: block_statement
 *Function that implements BLOCK-STMT statement rule of grammar */
 static AST *block_statement(Token *, size_t *, AST *);
+
+/*@Function: block_statement
+*Function that implements BLOCK-STMT statement rule of grammar */
+static AST *if_statement(Token *, size_t *, AST *);
 
 /*@Function: print_statement
 *Function that implements PRINT-STMT statement rule of grammar */
@@ -95,7 +99,7 @@ static AST *statement(Token *, size_t *, AST *);
 
 /*@Function: declaration
 *Function that implements DECL statement rule of grammar*/
-static AST *declaration(Token *token_list, size_t *token_position, AST *ast);
+static AST *declaration(Token *, size_t *, AST *);
 
 /*@Function: ast_free
 *Function that deletes AST from current node down */

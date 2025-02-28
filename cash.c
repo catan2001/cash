@@ -91,7 +91,6 @@ int main(void)
     signal(SIGINT, sigint_handler);
     /*Clear the terminal at start*/
     clear_terminal();
-
     while (TRUE)
     {
         char **tokens;
@@ -122,8 +121,8 @@ int main(void)
         for(size_t i = 0; i < number_of_statements; ++i)
             if(ast[i] != NULL) 
                 ast_free(ast[i]);      
-        free(ast); 
-        
+        free(ast);
+
         DEALLOCATE_CTOKENS_LABEL:
         for (size_t i = 0; ctox[i].type != EOF_TOKEN; ++i) {
             free(ctox[i].lexeme);

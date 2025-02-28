@@ -78,7 +78,19 @@ extern void ast_print(AST *ast)
             fprintf(stdout, "Block Statement Node.\n");
             for(size_t i = 0; i < ast->data.AST_BLOCK_STMT.stmt_num; ++i)
                 ast_print(ast->data.AST_BLOCK_STMT.stmt_list[i]);
-            break;;
+            break;
+        }
+        case AST_IF_STMT:
+        {
+            fprintf(stdout, "If statement Node.\n");
+            fprintf(stdout, "Condition AST:\n");
+            ast_print(ast->data.AST_IF_STMT.condition);
+            fprintf(stdout, "True Branch AST:\n");
+            ast_print(ast->data.AST_IF_STMT.true_branch);
+            fprintf(stdout, "Else Branch AST:\n");
+            if(ast->data.AST_IF_STMT.else_branch != NULL)
+                ast_print(ast->data.AST_IF_STMT.else_branch);
+            break;
         }
         case AST_PRINT_STMT: 
         {
@@ -93,20 +105,28 @@ extern void ast_print(AST *ast)
             break;               
         }
         case AST_BINARY_EXPR:
+        {
             fprintf(stdout, "Binary Node: %s\n", ast->data.AST_BINARY_EXPR.token->lexeme);
             ast_print(ast->data.AST_BINARY_EXPR.left);
             ast_print(ast->data.AST_BINARY_EXPR.right);
             break;
+        }
         case AST_UNARY_EXPR:
+        {
             fprintf(stdout, "Unary Node: %s\n", ast->data.AST_UNARY_EXPR.token->lexeme);
             ast_print(ast->data.AST_UNARY_EXPR.right);
             break;
+        }
         case AST_IDENTIFIER:
+        {
             fprintf(stdout, "Identifier node: %s\n", ast->data.token->lexeme);
             break;
+        }
         case AST_LITERAL:
+        {
             fprintf(stdout, "Literal Node: %s\n", ast->data.token->lexeme);
             break;
+        }
         default:
             fprintf(stderr, "Error! Cannot print AST node: %s\n", ast->data.token->lexeme);
             break;
@@ -139,6 +159,14 @@ extern void ast_free(AST *ast)
                 ast_free(ast->data.AST_BLOCK_STMT.stmt_list[i]);
             break;
         }
+        case AST_IF_STMT:
+        {
+            ast_free(ast->data.AST_IF_STMT.condition);
+            ast_free(ast->data.AST_IF_STMT.true_branch);
+            if(ast->data.AST_IF_STMT.else_branch != NULL) 
+                ast_free(ast->data.AST_IF_STMT.else_branch);  
+            break; 
+        } 
         case AST_PRINT_STMT: 
         {
             ast_free(ast->data.AST_PRINT_STMT.expr);
@@ -288,14 +316,13 @@ static AST *unary(Token *token_list, size_t *token_position, AST *ast)
         );
         return ast;
     }
-    
     return primary(token_list, token_position, ast);
 }
 
 static AST *factor(Token *token_list, size_t *token_position, AST *ast)
 {
     ast = unary(token_list, token_position, ast);
-    
+
     while(token_list[*token_position].type == DIVIDE  ||
           token_list[*token_position].type == MULTIPLY)
     {
@@ -362,7 +389,7 @@ static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
             parser_error(*operator, "Missing right operator!\n");
             panic_mode(token_list, token_position);
             return ast; 
-        }        
+        }    
         AST *right = term(token_list, token_position, ast);
         ast = ast_new((AST)
             {
@@ -375,14 +402,13 @@ static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
             }
         );
     }
-
     return ast;
 }
 
 static AST *equality(Token *token_list, size_t *token_position, AST *ast)
 {
     ast = comparison(token_list, token_position, ast);
-    
+
     while(token_list[*token_position].type == EXCLAMATION_EQUEAL ||
           token_list[*token_position].type == DOUBLE_EQUAL)
     {
@@ -523,6 +549,44 @@ static AST *block_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
+static AST *if_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    if(token_list[*token_position].type != LEFT_PARENTHESIS)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected ( after if statement!");
+        return ast;
+    }
+    next_position(token_position, token_list);
+    AST *condition = expression(token_list, token_position, ast);
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected ) after if statement!");
+        return ast;
+    }
+    next_position(token_position, token_list);
+    AST *true_branch = statement(token_list, token_position, ast);
+    AST *else_branch = NULL;
+
+    if(!next_position(token_position, token_list) && token_list[*token_position].type == ELSE)
+    {
+        next_position(token_position, token_list);
+        else_branch = statement(token_list, token_position, ast);
+    }
+    ast = ast_new((AST)
+        {
+            .tag = AST_IF_STMT,
+            .data.AST_IF_STMT = {
+                condition,
+                true_branch,
+                else_branch
+            }
+        }            
+    );  
+    return ast; 
+}
+
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
     if(token_list[*token_position].type != IDENTIFIER)
@@ -579,6 +643,15 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
         return block_statement(token_list, token_position, ast);       
     }
 
+    /* If statement rule */
+    if(token_list[*token_position].type == IF) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected '(' condition ')' after if statement!");
+            return ast;
+        }
+        return if_statement(token_list, token_position, ast);       
+    }
+
     /* Regular expression statement */
     return expression_statement(token_list, token_position, ast);
 }
@@ -615,7 +688,6 @@ extern AST **parser(Token *token_list, size_t *statement_number)
         if(ast[num_of_stmt] != NULL) {
             num_of_stmt++;
         }
-        ast_print(ast[0]);
         printf("Number of statements parsed: %d\n\n", num_of_stmt);
     } while(!next_position(&token_position, token_list));
 

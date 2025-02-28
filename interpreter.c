@@ -253,6 +253,18 @@ static ValueTagged *evaluate_assign_expression(AST *node, EnvironmentMap *env_ho
     return value;
 }
 
+static ValueTagged *evaluate_if_statement(AST *node, EnvironmentMap *env_host)
+{
+    ValueTagged *condition = evaluate(node->data.AST_IF_STMT.condition, env_host);
+    if(is_truth(condition, condition->type).boolean_value)
+        evaluate(node->data.AST_IF_STMT.true_branch, env_host);
+    else
+        evaluate(node->data.AST_IF_STMT.else_branch, env_host);
+    
+    free(condition);
+    return NULL;
+}
+
 static ValueTagged *evaluate_block_statement(AST *node, EnvironmentMap *env_parrent, EnvironmentMap *env_host)
 {
     env_host->env_enclosing = env_parrent;
@@ -263,6 +275,7 @@ static ValueTagged *evaluate_block_statement(AST *node, EnvironmentMap *env_parr
     }
     /* Free memory of Local Environment */
     env_reset(env_host);
+    return NULL;
 }
 
 static ValueTagged *evaluate_variable_statement(AST *node, EnvironmentMap *env_host)
@@ -320,8 +333,9 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return evaluate(node->data.AST_EXPR_STMT.expr, env_host);
     case AST_BLOCK_STMT:
         EnvironmentMap env_child = {NULL, NULL, 0};
-        evaluate_block_statement(node, env_host, &env_child);
-        return NULL;
+        return evaluate_block_statement(node, env_host, &env_child);
+    case AST_IF_STMT:
+        return evaluate_if_statement(node, env_host); 
     case AST_PRINT_STMT:
         ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr, env_host);
         return ((ValueTagged *)_printf(result));
