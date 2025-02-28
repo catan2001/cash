@@ -83,21 +83,30 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 
 ### 26.2.2025.
 - [x] Refactored code
-- [x] Fixed Identifier functions 
+- [x] Fixed Identifier functions
+
+### 27.2.2025.
+- [x] Deal with undefined variables (thrash null)
+- [x] Finished Global variables.
+
+### 28.2.2025.
+- [x] Added block statement.
+- [x] Interpreted Local variables
+- [x] Added If statements
 
 ### NEXT TIME:
-- [ ] Deal with null types
-- [ ] Finish global variables
-- [ ] Make functions return error codes. Handle them externally
-- [ ] Allocate memory for every new string?
-- [ ] Fix error function line numbering
+- [ ] Fix errors, and function line numbering!
+- [ ] Add loading files!
+- [ ] Deallocate whole memory!
+- [ ] Fix Panic mode!
 - [ ] Bug when freeing memory for unused characters
-- [ ] Add support for ternary operators
+- [ ] Add support for ternary ?: operators
 - [ ] Add support for comma Expressions
 - [ ] Create Coroutine for synchronization
 - [ ] Semantic evaluation of AST
 - [ ] Combine tokenization and classification into one function Scanner/Lexer
 - [ ] Encapsulate number abstract type for print
+- [ ] In future Add special NULL types.
 
 ## Ideas
 - [ ] Instead of having lexer -> parser -> execution. 

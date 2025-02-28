@@ -36,10 +36,16 @@ Rules:
 <PROG>        ::=   <DECL-STMT>* <EOF>
 <DECL-STMT>   ::=   <VAR-DECL> | <STMT>
 <VAR-DECL>    ::=   "var" <ID> ("=" <EXPR>)? ";"
-<STMT>        ::=   <EXPR-STMT> | <PRINT-STMT>
+<STMT>        ::=   <EXPR-STMT> | <PRINT-STMT> | <BLOCK-STMT> 
+                    | <IF-STMT>
 <EXPR-STMT>   ::=   <EXPR> ";"
 <PRINT-STMT>  ::=   "printf" <EXPR> ";"
-<EXPR>        ::=   <CMPR> (( "!=" | "==" ) <CMPR> )*
+<BLOCK-STMT>  ::=   "{" <DECL-STMT>* "}"
+<IF-STMT>     ::=   "if" "(" <EXPR> ")" <STMT> ("else" <STMT>)?
+<EXPR>        ::=   <ASSIGN>
+<ASSIGN>      ::=   <ID> "=" <ASSIGN>
+                    | <EQL>
+<EQL>         ::=   <CMPR> (( "!=" | "==" ) <CMPR> )*
 <CMPR>        ::=   <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
 <TERM>        ::=   <FACT> (( "-" | "+" ) <FACT> )*
 <FACT>        ::=   <UNRY> (( "/" | "*") <UNRY> )*
@@ -53,23 +59,27 @@ Rules:
 
 Syntax:
 **********************************************
-<NAME>      -> nonterminal
-"NAME"      -> terminal
+<NAME>        -> nonterminal
+"NAME"        -> terminal
 
 Scheme:
 **********************************************
-<PROG>      -> program;
-<DECL-STMT> -> declaration statement;
-<VAR-DECL>  -> variable declaration statement;
-<STMT>      -> statement;
-<EXPR>      -> expression;
-<A-EXPR>    -> assignment-expression;
-<EQL>       -> equality;
-<CMPR>      -> comparison;
-<TERM>      -> term;
-<FACT>      -> factor;
-<UNRY>      -> unary;
-<PRIM>      -> primary;
-<ID>        -> identifier
+<PROG>        -> program;
+<DECL-STMT>   -> declaration statement;
+<VAR-DECL>    -> variable declaration statement;
+<STMT>        -> statement;
+<EXPR-STMT>   -> expression statement;
+<PRINT-STMT>  -> print statement;
+<BLOCK-STMT>  -> block statement;
+<IF-STMT>     -> if statement;
+<EXPR>        -> expression;
+<ASSIGN>      -> assignment-expression;
+<EQL>         -> equality;
+<CMPR>        -> comparison;
+<TERM>        -> term;
+<FACT>        -> factor;
+<UNRY>        -> unary;
+<PRIM>        -> primary;
+<ID>          -> identifier
 
 ``` 
