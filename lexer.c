@@ -139,6 +139,10 @@ static TokenType classify_special_token(const char *token, Token *ctoken)
             return (token[1] == '=') ? LESS_EQUAL : REDIRECTION_LEFT_LESS_RELATIONAL;
         case '>':
             return (token[1] == '=') ? GREATER_EQUAL : REDIRECTION_RIGHT_GREATER_RELATIONAL;
+        case '&':
+            return (token[1] == '&') ? DOUBLE_AND : AND;
+        case '|':
+            return (token[1] == '|') ? DOUBLE_OR : PIPE;
         case '!':
             return EXCLAMATION_EQUEAL;
         case '=':
@@ -242,7 +246,7 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
                 return tokens; // TODO: Add comment block..
 
             /*Copy special token into the array*/
-            if (cmd[i + 1] == '=' || cmd[i + 1] == '>' || cmd[i + 1] == '<')
+            if (cmd[i+1] == '=' || cmd[i+1] == '>' || cmd[i+1] == '<' || cmd[i+1] == '&' || cmd[i+1] == '|')
                 special_token[1] = cmd[++i];
 
             tokens = add_token(tokens, token_cnt, special_token);
