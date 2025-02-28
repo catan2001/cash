@@ -33,7 +33,7 @@ SOFTWARE.
 
 static jmp_buf sync_env;
 
-static ValueTagged *evaluate(AST *);
+static ValueTagged *evaluate(AST *, EnvironmentMap *);
 
 static void runtime_error_mode(void)
 {
@@ -71,19 +71,18 @@ static ValueTagged *literal_value(AST *node)
         INTERNAL_ERROR("Tried to return non-literal node.");
         abort();
     }
-    
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     return (result->literal = node->data.token->literal, result->type = node->data.token->type, result);
 }
 
-static ValueTagged *identifier_value(AST *node)
+static ValueTagged *identifier_value(AST *node, EnvironmentMap *env_host)
 {
     if(node->tag != AST_IDENTIFIER)
     {
         INTERNAL_ERROR("Tried to return non-identifier node.");
         abort();
     }
-    ValueTagged *found = env_get_var(node->data.token);
+    ValueTagged *found = env_get_var(node->data.token, env_host);
     if(found == NULL) return NULL;
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     return (result->literal = found->literal, result->type = found->type, result);
@@ -102,9 +101,9 @@ static Value is_truth(ValueTagged *value, TokenType type)
     return (ret.boolean_value = TRUE, ret);
 }
 
-static ValueTagged *evaluate_unary_expression(AST *node)
+static ValueTagged *evaluate_unary_expression(AST *node, EnvironmentMap *env_host)
 {
-    ValueTagged *right = evaluate(node->data.AST_UNARY_EXPR.right);
+    ValueTagged *right = evaluate(node->data.AST_UNARY_EXPR.right, env_host);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     TokenType operator_type = node->data.AST_UNARY_EXPR.token->type;
     result->type = right->type;
@@ -170,10 +169,10 @@ static ValueTagged *evaluate_unary_expression(AST *node)
     abort();
 }
 
-static ValueTagged *evaluate_binary_expression(AST *node)
+static ValueTagged *evaluate_binary_expression(AST *node, EnvironmentMap *env_host)
 {
-    ValueTagged *left = evaluate(node->data.AST_BINARY_EXPR.left);
-    ValueTagged *right = evaluate(node->data.AST_BINARY_EXPR.right);
+    ValueTagged *left = evaluate(node->data.AST_BINARY_EXPR.left, env_host);
+    ValueTagged *right = evaluate(node->data.AST_BINARY_EXPR.right, env_host);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     TokenType operator_type = node->data.AST_BINARY_EXPR.token->type;
 
@@ -240,27 +239,40 @@ static ValueTagged *evaluate_binary_expression(AST *node)
     abort();
 } 
 
-static ValueTagged *evaulate_grouping_expression(AST *node)
+static ValueTagged *evaulate_grouping_expression(AST *node, EnvironmentMap *env_host)
 {
-    return evaluate(node->data.AST_GROUPING_EXPR.left);
+    return evaluate(node->data.AST_GROUPING_EXPR.left, env_host);
 }
 
-static ValueTagged *evaluate_assign_expression(AST *node)
+static ValueTagged *evaluate_assign_expression(AST *node, EnvironmentMap *env_host)
 {
-    ValueTagged *value = evaluate(node->data.AST_ASSIGN_EXPR.expr);
+    ValueTagged *value = evaluate(node->data.AST_ASSIGN_EXPR.expr, env_host);
     Token *name = node->data.AST_ASSIGN_EXPR.token;
-    env_assign_var(name, value);
+    
+    env_assign_var(name, value, env_host);
     return value;
 }
 
-static ValueTagged *evaluate_variable_statement(AST *node)
+static ValueTagged *evaluate_block_statement(AST *node, EnvironmentMap *env_parrent, EnvironmentMap *env_host)
+{
+    env_host->env_enclosing = env_parrent;
+
+    for(size_t i = 0; i < node->data.AST_BLOCK_STMT.stmt_num; ++i)
+    {
+        ValueTagged *result = evaluate(node->data.AST_BLOCK_STMT.stmt_list[i], env_host);
+    }
+    /* Free memory of Local Environment */
+    env_reset(env_host);
+}
+
+static ValueTagged *evaluate_variable_statement(AST *node, EnvironmentMap *env_host)
 {   
     Token *name = node->data.AST_VAR_DECL_STMT.name;
     ValueTagged *value = NULL;
     if(node->data.AST_VAR_DECL_STMT.init != NULL) 
-        value = evaluate(node->data.AST_VAR_DECL_STMT.init);
-         
-    env_define_var(name, value);
+        value = evaluate(node->data.AST_VAR_DECL_STMT.init, env_host);
+
+    env_define_var(name, value, env_host);
     return value;            
 }
 
@@ -288,29 +300,33 @@ static ValueTagged * _printf(ValueTagged *result)
     return result;
 }
 
-static ValueTagged *evaluate(AST *node)
+static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
 {   
     switch (node->tag)
     {
     case AST_LITERAL:
         return literal_value(node);
     case AST_IDENTIFIER:
-        return identifier_value(node); 
+        return identifier_value(node, env_host);    
     case AST_UNARY_EXPR:
-        return evaluate_unary_expression(node);
+        return evaluate_unary_expression(node, env_host);
     case AST_BINARY_EXPR:
-        return evaluate_binary_expression(node);
+        return evaluate_binary_expression(node, env_host);
     case AST_GROUPING_EXPR:
-        return evaulate_grouping_expression(node);
+        return evaulate_grouping_expression(node, env_host);
     case AST_ASSIGN_EXPR:
-        return evaluate_assign_expression(node);
+        return evaluate_assign_expression(node, env_host);
     case AST_EXPR_STMT:
-        return evaluate(node->data.AST_EXPR_STMT.expr);
+        return evaluate(node->data.AST_EXPR_STMT.expr, env_host);
+    case AST_BLOCK_STMT:
+        EnvironmentMap env_child = {NULL, NULL, 0};
+        evaluate_block_statement(node, env_host, &env_child);
+        return NULL;
     case AST_PRINT_STMT:
-        ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr);
+        ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr, env_host);
         return ((ValueTagged *)_printf(result));
     case AST_VAR_DECL_STMT:
-        return evaluate_variable_statement(node);
+        return evaluate_variable_statement(node, env_host);
     default:
         break;
     }
@@ -324,8 +340,8 @@ extern void interpret(AST *expr)
     else
         fprintf(stdout, "Setjmp for interpreter!\n");
 
-    ValueTagged *value = evaluate(expr);
-    eval_print(value);
+    ValueTagged *value = evaluate(expr, &env_global);
+    //eval_print(value);
 }
 
 

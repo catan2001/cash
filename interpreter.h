@@ -43,27 +43,31 @@ static ValueTagged *literal_value(AST *);
 
 /*@Function: identifier_value
 *Function that returns value of identifier found in Environment*/
-static ValueTagged *identifier_value(AST *);
+static ValueTagged *identifier_value(AST *, EnvironmentMap *);
 
 /*@Function: evaluate_unary_expression
 *Function that evaluates unary expression */
-static ValueTagged *evaluate_unary_expression(AST *);
+static ValueTagged *evaluate_unary_expression(AST *, EnvironmentMap *);
 
 /*@Function: evaluate_binary expression
 *Function that evaluates binary expression */
-static ValueTagged *evaluate_binary_expression(AST *);
+static ValueTagged *evaluate_binary_expression(AST *, EnvironmentMap *);
 
 /*@Function: evaluate_grouping_expression
 *Function that evaluates grouping expression */
-static ValueTagged *evaulate_grouping_expression(AST *);
+static ValueTagged *evaulate_grouping_expression(AST *, EnvironmentMap *);
 
 /*@Function: evaluate_assign_expression 
 *Function that evaluates assign expression */
-static ValueTagged *evaluate_assign_expression(AST *);
+static ValueTagged *evaluate_assign_expression(AST *, EnvironmentMap *);
+
+/*@Function: evaluate_block_statement
+*Function that evaluates block statement */
+static ValueTagged *evaluate_block_statement(AST *, EnvironmentMap *, EnvironmentMap *); 
 
 /*@Function: evaluate_variable_statement
-*Function that evaluates variable statement*/
-static ValueTagged *evaluate_variable_statement(AST *); 
+*Function that evaluates variable statement */
+static ValueTagged *evaluate_variable_statement(AST *, EnvironmentMap *); 
 
 /*@Function: _printf
 *Function that evaluates result of AST printf */
@@ -71,7 +75,7 @@ static ValueTagged * _printf(ValueTagged *);
 
 /*@Function: evaluate
 *Function that calls evaluation of specific node type */
-static ValueTagged *evaluate(AST *);
+static ValueTagged *evaluate(AST *, EnvironmentMap *);
 
 /*@Function: interpret
 *Function that interprets expressions*/

@@ -273,12 +273,15 @@ typedef struct environment_s
 } Environment;
 
 /*@Type EnvironmentMap: Environment map with pointer to allocated Environment and its size */
-typedef struct environment_map_s
+typedef struct EnvironmentMap EnvironmentMap;
+
+/*@Type EnvironmentMap: Environment map with pointer to allocated Environment and its size */
+struct EnvironmentMap
 {
     Environment *env;
-    Environment *env_enclosing;
+    EnvironmentMap *env_enclosing;
     size_t env_size;
-} EnvironmentMap;
+};
 
 /*@Type ReservedWordMapType: Structure used for classifying reserved words */
 typedef struct reserved_word_map_t
@@ -299,6 +302,7 @@ struct AST
         AST_IDENTIFIER,
         AST_VAR_DECL_STMT,
         AST_EXPR_STMT,
+        AST_BLOCK_STMT,
         AST_PRINT_STMT,
         AST_ASSIGN_EXPR,
         AST_BINARY_EXPR,
@@ -309,7 +313,8 @@ struct AST
     {
         Token *token;
         struct AST_VAR_DECL_STMT {Token *name; AST *init;} AST_VAR_DECL_STMT;
-        struct AST_EXPR {AST *expr;} AST_EXPR_STMT;
+        struct AST_EXPR_STMT {AST *expr;} AST_EXPR_STMT;
+        struct AST_BLOCK_STMT {AST **stmt_list; size_t stmt_num;} AST_BLOCK_STMT;
         struct AST_PRINT_STMT {AST *expr;} AST_PRINT_STMT;
         struct AST_ASSIGN_EXPR {Token *token; AST *expr;} AST_ASSIGN_EXPR;
         struct AST_GROUPING_EXPR {AST *left; Token *token;} AST_GROUPING_EXPR;

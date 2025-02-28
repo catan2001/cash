@@ -81,6 +81,10 @@ static AST *variable_declaration(Token *token_list, size_t *token_position, AST 
 *Function that implements EXPR-STMT statement rule of grammar */
 static AST *expression_statement(Token *, size_t *, AST *);
 
+/*@Function: block_statement
+*Function that implements BLOCK-STMT statement rule of grammar */
+static AST *block_statement(Token *, size_t *, AST *);
+
 /*@Function: print_statement
 *Function that implements PRINT-STMT statement rule of grammar */
 static AST *print_statement(Token *, size_t *, AST *);

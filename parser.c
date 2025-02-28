@@ -38,7 +38,7 @@ static int next_position(size_t *current_position, Token *token_list)
         return 1;
         
     (*current_position)++;
-    printf("Current position %d\n", (*current_position));
+    printf("New position %d, token %s\n", (*current_position), token_list[*current_position].lexeme);
     return 0;
 }
 
@@ -72,6 +72,13 @@ extern void ast_print(AST *ast)
             fprintf(stdout, "Expression Statement Node.\n");
             ast_print(ast->data.AST_EXPR_STMT.expr);
             break;
+        }
+        case AST_BLOCK_STMT:
+        {
+            fprintf(stdout, "Block Statement Node.\n");
+            for(size_t i = 0; i < ast->data.AST_BLOCK_STMT.stmt_num; ++i)
+                ast_print(ast->data.AST_BLOCK_STMT.stmt_list[i]);
+            break;;
         }
         case AST_PRINT_STMT: 
         {
@@ -124,6 +131,12 @@ extern void ast_free(AST *ast)
         case AST_EXPR_STMT: 
         {
             ast_free(ast->data.AST_EXPR_STMT.expr);
+            break;
+        }
+        case AST_BLOCK_STMT:
+        {
+            for(size_t i = 0; i < ast->data.AST_BLOCK_STMT.stmt_num; ++i)
+                ast_free(ast->data.AST_BLOCK_STMT.stmt_list[i]);
             break;
         }
         case AST_PRINT_STMT: 
@@ -401,11 +414,10 @@ static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
 
     if(token_list[*token_position].type == EQUAL)
     {
-        printf("Entered equal!\n");
         Token *equals = &token_list[*token_position];
         if(next_position(token_position, token_list)) 
         {
-            parser_error(token_list[*token_position], "Expected expression after '=' sign");
+            parser_error(token_list[*token_position], "Expected expression after equals sign");
             panic_mode(token_list, token_position);
         }
         AST *value = assignment(token_list, token_position, ast);
@@ -413,8 +425,6 @@ static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
         if(ast->tag == AST_IDENTIFIER)
         {
             Token *name = ast->data.token;
-            // Deallocate previously allocated ast.
-            free(ast);
             ast = ast_new((AST)
                 {  
                     .tag = AST_ASSIGN_EXPR,
@@ -427,7 +437,7 @@ static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
             return ast;
         }
         
-        parser_error(*equals, "Invalid assignment target!");
+        parser_error(token_list[*token_position], "Invalid assignment target");
         panic_mode(token_list, token_position);
 
     }
@@ -480,6 +490,39 @@ static AST *print_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
+static AST *block_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    ast = ast_new((AST)
+        {
+            .tag = AST_BLOCK_STMT,
+            .data.AST_BLOCK_STMT = {
+                NULL,   // initialize to no arrays (block could be just {} )
+                0       // initialize to 0 since there are no arrays 
+            }
+        }
+    );
+    AST **_stmt_list = ast->data.AST_BLOCK_STMT.stmt_list;
+    while(token_list[*token_position].type != RIGHT_BRACE && token_list[(*token_position) + 1].type != EOF_TOKEN)
+    {
+        _stmt_list = realloc(_stmt_list, sizeof(AST *) * (ast->data.AST_BLOCK_STMT.stmt_num + 1));
+        _stmt_list[ast->data.AST_BLOCK_STMT.stmt_num] = declaration(token_list, token_position, ast);
+        if(next_position(token_position, token_list)) {
+            TODO("Fix panic mode!");
+            parser_error(token_list[*token_position], "Expected '}' aftertt block statement.");
+            panic_mode(token_list, token_position);
+        }
+        ast->data.AST_BLOCK_STMT.stmt_num++;
+    } 
+    ast->data.AST_BLOCK_STMT.stmt_list = _stmt_list;
+    
+    if(token_list[*token_position].type != RIGHT_BRACE) {
+        parser_error(token_list[*token_position], "Expected '}' after block statement.");
+        panic_mode(token_list, token_position);
+    }
+
+    return ast;
+}
+
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
     if(token_list[*token_position].type != IDENTIFIER)
@@ -497,7 +540,6 @@ static AST *variable_declaration(Token *token_list, size_t *token_position, AST 
             parser_error(token_list[*token_position], "Unexpected EOF after initialization of variable.");
         initializer = expression(token_list, token_position, ast);
     }
-
     ast = ast_new((AST)
         {
             .tag = AST_VAR_DECL_STMT,
@@ -527,6 +569,16 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
         }
         return print_statement(token_list, token_position, ast);
     }
+
+    /* Block statement rule */
+    if(token_list[*token_position].type == LEFT_BRACE) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected expression or '}' after opening block statement!");
+            return ast;
+        }
+        return block_statement(token_list, token_position, ast);       
+    }
+
     /* Regular expression statement */
     return expression_statement(token_list, token_position, ast);
 }
@@ -563,6 +615,7 @@ extern AST **parser(Token *token_list, size_t *statement_number)
         if(ast[num_of_stmt] != NULL) {
             num_of_stmt++;
         }
+        ast_print(ast[0]);
         printf("Number of statements parsed: %d\n\n", num_of_stmt);
     } while(!next_position(&token_position, token_list));
 

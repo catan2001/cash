@@ -29,7 +29,7 @@ SOFTWARE.
 #include "error.h"
 #include "environment.h"
 
-EnvironmentMap env_map = {.env = NULL, .env_enclosing = NULL, .env_size = 0};
+EnvironmentMap env_global = {.env = NULL, .env_enclosing = NULL, .env_size = 0};
 
 static void env_copy_value(ValueTagged *value, Environment *env_value)
 {
@@ -60,83 +60,85 @@ static void env_copy_value(ValueTagged *value, Environment *env_value)
    }
 }
 
-extern int env_delete_var(char *name)
+extern int env_delete_var(char *name, EnvironmentMap *env_map)
 {
-   for(size_t i = 0; i < env_map.env_size; ++i)
+   for(size_t i = 0; i < env_map->env_size; ++i)
    {
-      if(!strcmp(name, env_map.env[i].name))
+      if(!strcmp(name, env_map->env[i].name))
       {
-         free(env_map.env[i].name);
-         if(env_map.env[i].value.type == STRING) free(env_map.env[i].value.literal.char_value);
-         env_map.env_size--;
-         env_map.env = realloc(env_map.env, env_map.env_size);
+         free(env_map->env[i].name);
+         if(env_map->env[i].value.type == STRING) free(env_map->env[i].value.literal.char_value);
+         env_map->env_size--;
+         env_map->env = realloc(env_map->env, env_map->env_size);
          return 0;
       }
    }
    return 1;
 }
 
-extern void env_reset(void)
+extern void env_reset(EnvironmentMap *env_map)
 {
-   for(size_t i = 0; i < env_map.env_size; ++i) 
+   for(size_t i = 0; i < env_map->env_size; ++i) 
    {
-      free(env_map.env[i].name);
-      if(env_map.env[i].value.type == STRING) free(env_map.env[i].value.literal.char_value);
+      free(env_map->env[i].name);
+      if(env_map->env[i].value.type == STRING) free(env_map->env[i].value.literal.char_value);
    }
-   if(env_map.env != NULL) free(env_map.env);
-   env_map.env_size = 0;
+   if(env_map->env != NULL) free(env_map->env);
+   env_map->env_size = 0;
 }
 
-extern void env_assign_var(Token *name, ValueTagged *value)
+extern void env_assign_var(Token *name, ValueTagged *value, EnvironmentMap *env_map)
 {
    if(name == NULL) INTERNAL_ERROR("Passed null name argument.");
 
    /* Search Environment for the same variable */
-   for(size_t i = 0; i < env_map.env_size; ++i)
+   for(size_t i = 0; i < env_map->env_size; ++i)
    {
-      if(!strcmp(name->lexeme, env_map.env[i].name))
+      if(!strcmp(name->lexeme, env_map->env[i].name))
       {
-         if(env_map.env[i].value.type == STRING)
-            free(env_map.env[i].value.literal.char_value);
-         env_copy_value(value, &env_map.env[i]); 
+         if(env_map->env[i].value.type == STRING)
+            free(env_map->env[i].value.literal.char_value);
+         env_copy_value(value, &env_map->env[i]); 
          return;
       }
    }
+
+   if(env_map->env_enclosing != NULL) return env_assign_var(name, value, env_map->env_enclosing);
 
    set_error_flag();
    environment_error(name, "Undefined variable");
 }
 
-extern void env_define_var(Token *name, ValueTagged *value) 
+extern void env_define_var(Token *name, ValueTagged *value, EnvironmentMap *env_map) 
 {
    if(name == NULL) INTERNAL_ERROR("Passed null name argument.");
-   
    /* Search Environment for the same variable */
-   for(size_t i = 0; i < env_map.env_size; ++i)
+   for(size_t i = 0; i < env_map->env_size; ++i)
    {
-      if(!strcmp(name->lexeme, env_map.env[i].name))
+      if(!strcmp(name->lexeme, env_map->env[i].name))
       {
-         if(env_map.env[i].value.type == STRING)
-            free(env_map.env[i].value.literal.char_value);
-         env_copy_value(value, &env_map.env[i]); 
+         if(env_map->env[i].value.type == STRING)
+            free(env_map->env[i].value.literal.char_value);
+         env_copy_value(value, &env_map->env[i]); 
          return;
       }
    }
-   
    /* If it was not found in Environment, add new variable to the Environment */
-   env_map.env = realloc(env_map.env, sizeof(Environment) * (env_map.env_size + 1));
-   if(env_map.env == NULL) INTERNAL_ERROR("Could not reallocate environment size!");
+   env_map->env = realloc(env_map->env, sizeof(Environment) * (env_map->env_size + 1));
+   if(env_map->env == NULL) INTERNAL_ERROR("Could not reallocate environment size!");
 
-   env_map.env[env_map.env_size].name = strdup(name->lexeme);
-   env_copy_value(value, &env_map.env[env_map.env_size]); 
-   env_map.env_size++;
+   env_map->env[env_map->env_size].name = strdup(name->lexeme);
+   env_copy_value(value, &env_map->env[env_map->env_size]); 
+   env_map->env_size++;
 }
 
-extern ValueTagged *env_get_var(Token *name)
+extern ValueTagged *env_get_var(Token *name, EnvironmentMap *env_map)
 {
-   for(size_t i = 0; i < env_map.env_size; ++i)
-      if(!strcmp(env_map.env[i].name, name->lexeme)) return &env_map.env[i].value;
-   
+   for(size_t i = 0; i < env_map->env_size; ++i)
+      if(!strcmp(env_map->env[i].name, name->lexeme)) return &env_map->env[i].value;
+  
+   if(env_map->env_enclosing != NULL) return env_get_var(name, env_map->env_enclosing);
+
    set_error_flag();
    environment_error(name, "Undefined variable");
    return NULL;

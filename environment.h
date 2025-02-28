@@ -25,32 +25,32 @@ SOFTWARE.
 #ifndef ENVIRONMENT_H
 #define ENVIRONMENT_H
 
-/*@Variable: env_map
+/*@Variable: env_global
 *Global EnvironmentMap variable */
-extern EnvironmentMap env_map;
+extern EnvironmentMap env_global;
 
 /*@Function: env_copy_value
 *Helper function that copies a variable value into particular Environment node */
 static void env_copy_value(ValueTagged *, Environment *);
 
 /*@Function: env_delete_var
-*Function that deletes particular variable in Environment and returns 0 if deleted*/
-extern int env_delete_var(char *);
+*Function that deletes particular local variable in Environment and returns 0 if deleted*/
+extern int env_delete_var(char *, EnvironmentMap *);
 
 /*@Function: env_reset
-*Function that resets (free) Environment */
-extern void env_reset(void);
+*Function that resets (free) local Environment */
+extern void env_reset(EnvironmentMap *);
 
 /*@Function: env_assign_var
 *Function that assignes some value to a variable in Environment */
-extern void env_assign_var(Token *, ValueTagged *);
+extern void env_assign_var(Token *, ValueTagged *, EnvironmentMap *);
 
 /*@Function: define_env_var
 *Function that defines new variable Environment, reallocates size of Environment by one */
-extern void env_define_var(Token *, ValueTagged *);
+extern void env_define_var(Token *, ValueTagged *, EnvironmentMap *);
 
 /*@Function: get_env_var
 *Function that tries to find variable name in Environment map*/
-extern ValueTagged *env_get_var(Token *);
+extern ValueTagged *env_get_var(Token *, EnvironmentMap *);
 
 #endif // ENVIRONMENT_H
