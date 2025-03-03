@@ -44,7 +44,9 @@ Rules:
 <IF-STMT>     ::=   "if" "(" <EXPR> ")" <STMT> ("else" <STMT>)?
 <EXPR>        ::=   <ASSIGN>
 <ASSIGN>      ::=   <ID> "=" <ASSIGN>
-                    | <EQL>
+                    | <LOR>
+<LOR>         ::=   <LAND> ( "||" <LAND>)*
+<LAND>        ::=   <EQL>  ( "&&" <EQL>)*
 <EQL>         ::=   <CMPR> (( "!=" | "==" ) <CMPR> )*
 <CMPR>        ::=   <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
 <TERM>        ::=   <FACT> (( "-" | "+" ) <FACT> )*
