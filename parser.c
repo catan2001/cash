@@ -430,13 +430,66 @@ static AST *equality(Token *token_list, size_t *token_position, AST *ast)
             }
         );
     }
-    
+    return ast;
+}
+
+static AST *logic_and(Token *token_list, size_t *token_postition, AST *ast)
+{
+    ast = equality(token_list, token_postition, ast);
+
+    while(token_list[*token_postition].type == DOUBLE_AND) 
+    {
+        Token *operator = &token_list[*token_postition];
+        if(next_position(token_postition, token_list)) {
+            parser_error(*operator, "Missing right operator!\n");
+            panic_mode(token_list, token_postition);
+            return ast; 
+        }
+        AST *right = equality(token_list, token_postition, ast);
+        ast = ast_new((AST)
+            {
+                .tag = AST_LOGICAL_EXPR,
+                .data.AST_LOGICAL_EXPR = {
+                    ast,
+                    operator,
+                    right
+                }
+            }
+        );               
+    }
+    return ast;
+}
+
+static AST *logic_or(Token *token_list, size_t *token_postition, AST *ast)
+{
+    ast = logic_and(token_list, token_postition, ast);
+
+    while(token_list[*token_postition].type == DOUBLE_OR) 
+    {
+        Token *operator = &token_list[*token_postition];
+        if(next_position(token_postition, token_list)) {
+            parser_error(*operator, "Missing right operator!\n");
+            panic_mode(token_list, token_postition);
+            return ast; 
+        }
+        AST *right = logic_and(token_list, token_postition, ast);
+        ast = ast_new((AST)
+            {
+                .tag = AST_LOGICAL_EXPR,
+                .data.AST_LOGICAL_EXPR = {
+                    ast,
+                    operator,
+                    right
+                }
+            }
+        );       
+    }
     return ast;
 }
 
 static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
 {
-    ast = equality(token_list, token_position, ast);
+    ast = logic_or(token_list, token_position, ast);
 
     if(token_list[*token_position].type == EQUAL)
     {
@@ -587,6 +640,122 @@ static AST *if_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast; 
 }
 
+static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    if(token_list[*token_position].type != LEFT_PARENTHESIS)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected ( after while statement!");
+        return ast;
+    }
+    next_position(token_position, token_list);
+    AST *condition = expression(token_list, token_position, ast);
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected ) after while statement!");
+        return ast;
+    }
+    next_position(token_position, token_list);
+    AST *body = statement(token_list, token_position, ast);
+
+    ast = ast_new((AST)
+        {
+            .tag = AST_WHILE_STMT,
+            .data.AST_WHILE_STMT = {
+                condition,
+		body
+            }
+        }            
+    );
+    return ast; 
+}
+
+static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    if(token_list[*token_position].type != LEFT_PARENTHESIS)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected ( after while statement!");
+        return ast;
+    }
+
+    if(next_position(token_position, token_list))
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected expression in initializer part of for statement!");
+        return ast;
+    }
+
+    AST *init;
+    
+    if(token_list[*token_position].type == SEMICOLON) 
+    {
+        init = NULL;
+    } else if(token_list[*token_position].type == VAR)
+    {
+	init = variable_declaration(token_list, token_position, init);
+    } else  
+    {
+	init = expression_statement(token_list, token_position, init);
+    } 
+
+    if(token_list[*token_position].type != SEMICOLON)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected ( after while statement!");
+        return ast;
+    }
+
+    if(next_position(token_position, token_list))
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected expression in initializer part of for statement!");
+        return ast;
+    }
+
+    AST *condition = NULL;
+    if(token_list[*token_position].type != SEMICOLON)
+    {
+	condition = expression(token_list, token_position, condition);
+    }
+
+    if(token_list[*token_position].type != SEMICOLON)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected ( after while statement!");
+        return ast;
+    }
+
+    if(next_position(token_position, token_list))
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected expression in initializer part of for statement!");
+        return ast;
+    }
+
+    AST *increment = NULL;
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
+    {
+	increment = expression(token_list, token_position, ast)
+    }
+
+
+    next_position(token_position, token_list);
+    AST *body = statement(token_list, token_position, ast);
+
+    ast = ast_new((AST)
+        {
+            .tag = AST_WHILE_STMT,
+            .data.AST_WHILE_STMT = {
+                condition,
+		body
+            }
+        }            
+    );
+    return ast; 
+}
+
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
     if(token_list[*token_position].type != IDENTIFIER)
@@ -652,6 +821,22 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
         return if_statement(token_list, token_position, ast);       
     }
 
+    if(token_list[*token_position].type == WHILE) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected '(' condition ')' after if statement!");
+            return ast;
+        }
+        return while_statement(token_list, token_position, ast);       
+    }
+
+    if(token_list[*token_position].type == FOR) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected '(' after for statement!");
+            return ast;
+        }
+        return for_statement(token_list, token_position, ast);       
+    }
+
     /* Regular expression statement */
     return expression_statement(token_list, token_position, ast);
 }
@@ -661,6 +846,7 @@ static AST *declaration(Token *token_list, size_t *token_position, AST *ast)
     if(!setjmp(sync_env))
         fprintf(stdout, "Setjmp for parser!\n");
 
+        printf("hello\n");
     if(token_list[*token_position].type == EOF_TOKEN)
         return ast;
     

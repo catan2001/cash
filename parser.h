@@ -65,6 +65,14 @@ static AST *comparison(Token *, size_t *, AST *);
 *Function that implements EQL rule of grammar */
 static AST *equality(Token *, size_t *, AST *);
 
+/*@Function logic_or
+*Function that implement LOR rule of grammar */
+static AST *logic_or(Token *, size_t *, AST *);
+
+/*@Function logic_and
+*Function that implement LAND rule of grammar */
+static AST *logic_and(Token *, size_t *, AST *);
+
 /*@Function: assignment
 *Function that implements ASSIGN expression rule of grammar */
 static AST *assignment(Token *, size_t *, AST *);
@@ -85,9 +93,13 @@ static AST *expression_statement(Token *, size_t *, AST *);
 *Function that implements BLOCK-STMT statement rule of grammar */
 static AST *block_statement(Token *, size_t *, AST *);
 
-/*@Function: block_statement
-*Function that implements BLOCK-STMT statement rule of grammar */
+/*@Function: if_statement
+*Function that implements IF-STMT statement rule of grammar */
 static AST *if_statement(Token *, size_t *, AST *);
+
+/*@Function: while_statement
+*Function that implements WHILE-STMT statement rule of grammar */
+static AST *while_statement(Token *, size_t *, AST *);
 
 /*@Function: print_statement
 *Function that implements PRINT-STMT statement rule of grammar */

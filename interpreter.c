@@ -244,6 +244,20 @@ static ValueTagged *evaulate_grouping_expression(AST *node, EnvironmentMap *env_
     return evaluate(node->data.AST_GROUPING_EXPR.left, env_host);
 }
 
+static ValueTagged *evaluate_logical_expression(AST *node, EnvironmentMap *env_host)
+{
+    ValueTagged *left = evaluate(node->data.AST_LOGICAL_EXPR.left, env_host);
+
+    if(node->data.AST_LOGICAL_EXPR.token->type == DOUBLE_OR) {
+        if(is_truth(left, left->type).boolean_value) return left;
+    }
+    else {
+        if(!is_truth(left, left->type).boolean_value) return left;
+    }
+
+    return evaluate(node->data.AST_LOGICAL_EXPR.right, env_host);
+}
+
 static ValueTagged *evaluate_assign_expression(AST *node, EnvironmentMap *env_host)
 {
     ValueTagged *value = evaluate(node->data.AST_ASSIGN_EXPR.expr, env_host);
@@ -261,6 +275,17 @@ static ValueTagged *evaluate_if_statement(AST *node, EnvironmentMap *env_host)
     else
         evaluate(node->data.AST_IF_STMT.else_branch, env_host);
     
+    free(condition);
+    return NULL;
+}
+
+static ValueTagged *evaluate_while_statement(AST *node, EnvironmentMap *env_host)
+{
+    ValueTagged *condition = evaluate(node->data.AST_WHILE_STMT.condition, env_host);
+    while(is_truth(condition, condition->type).boolean_value) {
+        evaluate(node->data.AST_WHILE_STMT.body, env_host);
+	condition = evaluate(node->data.AST_WHILE_STMT.condition, env_host); 
+    }
     free(condition);
     return NULL;
 }
@@ -327,6 +352,8 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return evaluate_binary_expression(node, env_host);
     case AST_GROUPING_EXPR:
         return evaulate_grouping_expression(node, env_host);
+    case AST_LOGICAL_EXPR:
+        return evaluate_logical_expression(node, env_host);
     case AST_ASSIGN_EXPR:
         return evaluate_assign_expression(node, env_host);
     case AST_EXPR_STMT:
@@ -335,7 +362,9 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         EnvironmentMap env_child = {NULL, NULL, 0};
         return evaluate_block_statement(node, env_host, &env_child);
     case AST_IF_STMT:
-        return evaluate_if_statement(node, env_host); 
+        return evaluate_if_statement(node, env_host);
+    case AST_WHILE_STMT:
+	return evaluate_while_statement(node, env_host);	
     case AST_PRINT_STMT:
         ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr, env_host);
         return ((ValueTagged *)_printf(result));

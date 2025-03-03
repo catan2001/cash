@@ -47,26 +47,30 @@ static CharacterType type_of_character(char c);
 
 /*@classify_special_token
 *Helper Function: Classifies special character token*/
-static TokenType classify_special_token(const char *token, Token *ctoken);
+static TokenType classify_special_token(const char *, Token *);
 
 /*@classify_string
 *Helper Function: Classifies strings*/
-static TokenType classify_string(char *token, Token *ctoken);
+static TokenType classify_string(char *, Token *);
 
 /*@classify_number
 *Helper Function: Classifies numbers*/
-static TokenType classify_number(const char *token, Token *ctoken);
+static TokenType classify_number(const char *, Token *);
 
 /*@classify_reserved_words
 *Helper Function: Classifies reserved words*/
-static TokenType classify_reserved_words(const char *token, Token *ctoken);
+static TokenType classify_reserved_words(const char *, Token *);
 
 /*@tokenizer
 *Function: Separates line into individual null terminated tokens.*/
-extern char **tokenizer(char *cmd, size_t *token_cnt);
+extern char **tokenizer(char *, size_t *);
+
+/*@eof_token
+*Function: Allocates and assigns EOF to the end of Token *, returns new number of ctokens*/
+extern size_t eof_token(Token **, size_t );
 
 /*@token_classifier
 *Function: Classifies tokens and returns pointer to classified tokens*/
-extern Token *token_classifier(char **token, const size_t number_of_tokens, size_t *number_of_ctokens);
+extern Token *token_classifier(char **, Token *, const size_t , size_t *);
 
 #endif // LEXER_H

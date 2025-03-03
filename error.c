@@ -47,6 +47,12 @@ extern void sigint_handler(const int sig)
     exit(EXIT_SUCCESS);
 }
 
+extern void lexer_error(int line, char *token, char *msg)
+{
+    set_error_flag();
+    fprintf(stdout, "\033[;31mError:\033[37m %d at %s, %s\n", line, token, msg);
+}
+
 extern void parser_error(Token token, char *msg)
 {
     set_error_flag();

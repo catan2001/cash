@@ -31,6 +31,10 @@ SOFTWARE.
         fprintf(stderr, "%s:%d Internal Error: %s\n", __FILE__, __LINE__);  \
     } while(0);
 
+#define ERR_WHITE 0
+#define ERR_YELLOW 1
+#define ERR_RED 2
+
 /* Global flag variable that indicates if error happened with error code */
 extern int error_flag;
 
@@ -45,6 +49,10 @@ extern void reset_error_flag(void);
 /*@Function: sigint_handler
 *Handler for signal interrupts */
 extern void sigint_handler(const int);
+
+/*@Function: lexer_error
+*Helper Function for printing lexer errors */
+extern void lexer_error(int , char *, char *);
 
 /*@Function: parser_error
 *Helper Function for printing parser errors */

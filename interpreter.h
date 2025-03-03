@@ -69,6 +69,10 @@ static ValueTagged *evaluate_block_statement(AST *, EnvironmentMap *, Environmen
 *Function that evaluates if statement */
 static ValueTagged *evaluate_if_statement(AST *, EnvironmentMap *); 
 
+/*@Function: evaluate_while_statement
+*Function that evaluates while statement */
+static ValueTagged *evaluate_while_statement(AST *, EnvironmentMap *); 
+
 /*@Function: evaluate_variable_statement
 *Function that evaluates variable statement */
 static ValueTagged *evaluate_variable_statement(AST *, EnvironmentMap *); 

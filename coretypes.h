@@ -28,8 +28,8 @@ SOFTWARE.
 #define TRUE 1
 #define FALSE 0
 
-/* Maximum size of the input line */
 #define MAX_LINE_SIZE 1000
+#define FILE_PATH_SIZE 100
 
 // TsodingDaily <3
 #define TODO(msg) do {                                                  \
@@ -264,7 +264,7 @@ typedef struct token_s
     TokenType type;
     char *lexeme;
     Value literal;
-    int line_number; // Add this after implementing error correction
+    size_t line_number; // Add this after implementing error correction
 } Token;
 
 /*@Type Environment: used for runtime environment */
@@ -302,15 +302,19 @@ struct AST
     {
         AST_LITERAL,
         AST_IDENTIFIER,
+
         AST_VAR_DECL_STMT,
         AST_EXPR_STMT,
         AST_BLOCK_STMT,
         AST_IF_STMT,
+	AST_WHILE_STMT,
         AST_PRINT_STMT,
+
         AST_ASSIGN_EXPR,
+        AST_LOGICAL_EXPR,
         AST_BINARY_EXPR,
-        AST_UNARY_EXPR,
-        AST_GROUPING_EXPR
+        AST_GROUPING_EXPR,
+        AST_UNARY_EXPR
     } tag;
     union 
     {
@@ -319,10 +323,12 @@ struct AST
         struct AST_EXPR_STMT {AST *expr;} AST_EXPR_STMT;
         struct AST_BLOCK_STMT {AST **stmt_list; size_t stmt_num;} AST_BLOCK_STMT;
         struct AST_IF_STMT {AST *condition; AST *true_branch; AST *else_branch;} AST_IF_STMT;
+	struct AST_WHILE_STMT {AST *condition; AST *body;} AST_WHILE_STMT;
         struct AST_PRINT_STMT {AST *expr;} AST_PRINT_STMT;
         struct AST_ASSIGN_EXPR {Token *token; AST *expr;} AST_ASSIGN_EXPR;
-        struct AST_GROUPING_EXPR {AST *left; Token *token;} AST_GROUPING_EXPR;
+        struct AST_LOGICAL_EXPR {AST *left; Token *token; AST *right;} AST_LOGICAL_EXPR;
         struct AST_BINARY_EXPR {AST *left; Token *token; AST *right;} AST_BINARY_EXPR;
+        struct AST_GROUPING_EXPR {AST *left; Token *token;} AST_GROUPING_EXPR;
         struct AST_UNARY_EXPR {AST *right; Token *token;} AST_UNARY_EXPR;
     } data;
 };  

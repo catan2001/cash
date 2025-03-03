@@ -227,9 +227,7 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
         case UNUSED_CHARACTERS:
             fprintf(stderr, "error: Character is not allowed in Cash!\n\t Error at: %d! \n", i);
             set_error_flag();
-            free(cmd);
-            exit(EXIT_FAILURE);
-
+            break;
         case SPECIAL:
             char special_token[3] = {cmd[i], '\0', '\0'};
 
@@ -263,11 +261,10 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
 
             while(cmd[++i] != '"') {
                 /*Report a warning if quotes are unterminated*/
-                if(cmd[i] == '\n' || cmd[i] == '\0') { // In future change to when it reaches EOF
+                if(cmd[i] == '\n' || cmd[i] == '\0') { 
                     fprintf(stderr, "error: Unterminated string at %d! \n", i);
                     set_error_flag();
                     break;
-                    //return tokens;
                 } 
             }
             /*Report an error if an quotes are followed by an identifier*/
@@ -305,43 +302,45 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
     return tokens;
 }
 
-extern Token *token_classifier(char **token, const size_t number_of_tokens, size_t *number_of_ctokens) // part of parser
-                                                                                                       //
+extern size_t eof_token(Token **ctoken, size_t number_of_ctokens)
+{
+    number_of_ctokens++;
+    *ctoken = realloc(*ctoken, sizeof(Token) * number_of_ctokens);
+    (*ctoken)[number_of_ctokens - 1].lexeme = NULL;
+    (*ctoken)[number_of_ctokens - 1].literal.char_value = NULL;
+    (*ctoken)[number_of_ctokens - 1].type = EOF_TOKEN;
+    return number_of_ctokens;
+}
+
+extern Token *token_classifier(char **token, Token *ctoken, const size_t number_of_tokens, size_t *number_of_ctokens)
 {
     if (!token)
         return NULL;
 
-    /*Allocate number of tokens as ctoken*/
-    Token *ctoken = (Token *)malloc(sizeof(Token) * (number_of_tokens+1));
+    ctoken = realloc(ctoken, sizeof(Token) * (number_of_tokens));
     if (ctoken == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for ctoken!");
         free(ctoken);
     }
 
-    for (size_t i = 0; i < number_of_tokens; ++i)
+    for (size_t i = 0; i < number_of_tokens - *number_of_ctokens; ++i)
     {
-        /*Classify special characters*/
         if (type_of_character(token[i][0]) == SPECIAL)
-            ctoken[i].type = classify_special_token(token[i], &ctoken[i]);
-        /*Classify strings*/ 
+            ctoken[*number_of_ctokens + i].type = classify_special_token(token[i], &ctoken[*number_of_ctokens + i]);
         else if (type_of_character(token[i][0]) == QUOTES)
-            ctoken[i].type = classify_string(token[i], &ctoken[i]);
-        /*Classify numbers*/ 
+            ctoken[*number_of_ctokens + i].type = classify_string(token[i], &ctoken[*number_of_ctokens + i]);
         else if (is_digit(token[i][0]))
-            ctoken[i].type = classify_number(token[i], &ctoken[i]);
-        /*Classify reserved words*/
+            ctoken[*number_of_ctokens + i].type = classify_number(token[i], &ctoken[*number_of_ctokens + i]);
         else 
-            ctoken[i].type = classify_reserved_words(token[i], &ctoken[i]);
+            ctoken[*number_of_ctokens + i].type = classify_reserved_words(token[i], &ctoken[*number_of_ctokens + i]);
 
-        /*Handle error when classifying*/ 
-        if (ctoken[i].type == FAILED_TO_CLASSIFY)
+        if (ctoken[*number_of_ctokens + i].type == FAILED_TO_CLASSIFY)
         {
             fprintf(stderr, "error: Failed to classify token %s\n", token[i]);
             set_error_flag();
-            /*Free all allocated memory before exiting*/ 
             for (size_t j = 0; j < (i + 1); j++)
-                free(ctoken[j].lexeme);
+                free(ctoken[*number_of_ctokens + j].lexeme);
             free(ctoken);
 
             *number_of_ctokens = 0;
@@ -349,14 +348,8 @@ extern Token *token_classifier(char **token, const size_t number_of_tokens, size
         }
     }
 
-    /* Add EOF token at the end */
-    *number_of_ctokens = number_of_tokens+1;
-    ctoken[number_of_tokens].lexeme = NULL;
-    ctoken[number_of_tokens].type = EOF_TOKEN;
-
-    for (int i = 0; i < number_of_tokens+1; ++i)
-        fprintf(stdout, "TOKEN: %s \n", ctoken[i].lexeme);
-
+    *number_of_ctokens = number_of_tokens;
     return ctoken;
 }
+
 
