@@ -96,12 +96,17 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 
 ### 3.3.2025.
 - [x] Add loading files!
+- [x] Added While loop stmt
 
+### 4.3.2025.
+- [x] Added For loops statements
+- [x] Fixed For loops and while loop ast_free and ast_print
 
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
 - [ ] Deallocate whole memory!
 - [ ] Fix Panic mode!
+- [ ] Implement break and continue
 - [ ] Bug when freeing memory for unused characters
 - [ ] Add support for ternary ?: operators
 - [ ] Add support for comma Expressions
