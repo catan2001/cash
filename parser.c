@@ -92,6 +92,43 @@ extern void ast_print(AST *ast)
                 ast_print(ast->data.AST_IF_STMT.else_branch);
             break;
         }
+        case AST_WHILE_STMT:
+        {
+            fprintf(stdout, "While statement Node.\n");
+            fprintf(stdout, "Condition AST:\n");
+            ast_print(ast->data.AST_WHILE_STMT.condition);
+            fprintf(stdout, "True Branch AST:\n");
+            if(ast->data.AST_WHILE_STMT.body != NULL)
+                ast_print(ast->data.AST_WHILE_STMT.body);
+            break;
+        }        
+        case AST_FOR_STMT:
+        {
+            fprintf(stdout, "For Statement Node.\n");
+            fprintf(stdout, "Init node ast:\n");
+            if(ast->data.AST_FOR_STMT.initializer != NULL)
+                ast_print(ast->data.AST_FOR_STMT.initializer);
+            else
+                fprintf(stdout, "Init Node is NULL\n");
+ 
+            fprintf(stdout, "Condition node ast:\n");
+            if(ast->data.AST_FOR_STMT.condition != NULL)
+                ast_print(ast->data.AST_FOR_STMT.condition);
+            else
+                fprintf(stdout, "condition Node is NULL\n");
+
+            fprintf(stdout, "Increment node ast:\n");
+            if(ast->data.AST_FOR_STMT.increment != NULL)
+                ast_print(ast->data.AST_FOR_STMT.increment);
+            else
+                fprintf(stdout, "Increment Node is NULL\n");
+
+            fprintf(stdout, "Body node ast:\n");
+            if(ast->data.AST_FOR_STMT.body != NULL)
+                ast_print(ast->data.AST_FOR_STMT.body);
+            else
+                fprintf(stdout, "body Node is NULL\n"); 
+        }
         case AST_PRINT_STMT: 
         {
             fprintf(stdout, "Print statement Node.\n");
@@ -166,6 +203,26 @@ extern void ast_free(AST *ast)
             if(ast->data.AST_IF_STMT.else_branch != NULL) 
                 ast_free(ast->data.AST_IF_STMT.else_branch);  
             break; 
+        }
+        case AST_WHILE_STMT:
+        {
+            if(ast->data.AST_WHILE_STMT.condition != NULL)
+                ast_free(ast->data.AST_WHILE_STMT.condition);
+            if(ast->data.AST_WHILE_STMT.body != NULL)
+                ast_free(ast->data.AST_WHILE_STMT.body);
+            break;
+        }
+        case AST_FOR_STMT:
+        {
+            if(ast->data.AST_FOR_STMT.initializer != NULL)
+                ast_free(ast->data.AST_FOR_STMT.initializer);
+            if(ast->data.AST_FOR_STMT.condition != NULL)
+                ast_free(ast->data.AST_FOR_STMT.condition);
+            if(ast->data.AST_FOR_STMT.increment != NULL)
+                ast_free(ast->data.AST_FOR_STMT.increment);
+            if(ast->data.AST_FOR_STMT.body != NULL)
+                ast_free(ast->data.AST_FOR_STMT.body);
+            break;
         } 
         case AST_PRINT_STMT: 
         {
@@ -671,7 +728,7 @@ static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast; 
 }
 
-static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *for_statement(Token *token_list, size_t *token_position, AST *ast)
 {
     if(token_list[*token_position].type != LEFT_PARENTHESIS)
     {
@@ -687,37 +744,37 @@ static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
         return ast;
     }
 
-    AST *init;
+    AST *initializer;
     
     if(token_list[*token_position].type == SEMICOLON) 
     {
-        init = NULL;
+        initializer = NULL;
     } else if(token_list[*token_position].type == VAR)
     {
-	init = variable_declaration(token_list, token_position, init);
+	    initializer = variable_declaration(token_list, token_position, initializer);
     } else  
     {
-	init = expression_statement(token_list, token_position, init);
+	    initializer = expression_statement(token_list, token_position, initializer);
     } 
 
     if(token_list[*token_position].type != SEMICOLON)
     {
         TODO("Fix errors");
-        parser_error(token_list[*token_position], "Expected ( after while statement!");
+        parser_error(token_list[*token_position], "Expected ; after initializerializer in for statement!");
         return ast;
     }
 
     if(next_position(token_position, token_list))
     {
         TODO("Fix errors");
-        parser_error(token_list[*token_position], "Expected expression in initializer part of for statement!");
+        parser_error(token_list[*token_position], "Expected expression in initializerializer part of for statement!");
         return ast;
     }
 
     AST *condition = NULL;
     if(token_list[*token_position].type != SEMICOLON)
     {
-	condition = expression(token_list, token_position, condition);
+	    condition = expression(token_list, token_position, condition);
     }
 
     if(token_list[*token_position].type != SEMICOLON)
@@ -737,19 +794,27 @@ static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
     AST *increment = NULL;
     if(token_list[*token_position].type != RIGHT_PARENTHESIS)
     {
-	increment = expression(token_list, token_position, ast)
+	    increment = expression(token_list, token_position, ast);
     }
 
-
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
+    {
+        TODO("Fix errors");
+        parser_error(token_list[*token_position], "Expected closing ) in for statement!");
+        return ast;
+    }
+   
     next_position(token_position, token_list);
     AST *body = statement(token_list, token_position, ast);
 
     ast = ast_new((AST)
         {
-            .tag = AST_WHILE_STMT,
-            .data.AST_WHILE_STMT = {
+            .tag = AST_FOR_STMT,
+            .data.AST_FOR_STMT = {
+                initializer,
                 condition,
-		body
+                increment,
+        		body
             }
         }            
     );
@@ -820,7 +885,7 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
         }
         return if_statement(token_list, token_position, ast);       
     }
-
+    /* While statement rule */
     if(token_list[*token_position].type == WHILE) {
         if(next_position(token_position, token_list)) {
             parser_error(token_list[*token_position], "Expected '(' condition ')' after if statement!");
@@ -828,7 +893,7 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
         }
         return while_statement(token_list, token_position, ast);       
     }
-
+    /* For statement rule */
     if(token_list[*token_position].type == FOR) {
         if(next_position(token_position, token_list)) {
             parser_error(token_list[*token_position], "Expected '(' after for statement!");
@@ -846,7 +911,6 @@ static AST *declaration(Token *token_list, size_t *token_position, AST *ast)
     if(!setjmp(sync_env))
         fprintf(stdout, "Setjmp for parser!\n");
 
-        printf("hello\n");
     if(token_list[*token_position].type == EOF_TOKEN)
         return ast;
     
@@ -876,7 +940,6 @@ extern AST **parser(Token *token_list, size_t *statement_number)
         }
         printf("Number of statements parsed: %d\n\n", num_of_stmt);
     } while(!next_position(&token_position, token_list));
-
     *statement_number = num_of_stmt;
     return ast;
 }

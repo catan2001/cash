@@ -284,7 +284,23 @@ static ValueTagged *evaluate_while_statement(AST *node, EnvironmentMap *env_host
     ValueTagged *condition = evaluate(node->data.AST_WHILE_STMT.condition, env_host);
     while(is_truth(condition, condition->type).boolean_value) {
         evaluate(node->data.AST_WHILE_STMT.body, env_host);
-	condition = evaluate(node->data.AST_WHILE_STMT.condition, env_host); 
+    	condition = evaluate(node->data.AST_WHILE_STMT.condition, env_host); 
+    }
+    free(condition);
+    return NULL;
+}
+
+static ValueTagged *evaluate_for_statement(AST *node, EnvironmentMap *env_host)
+{
+    AST *init_node = node->data.AST_FOR_STMT.initializer;
+    AST *cond_node = node->data.AST_FOR_STMT.condition;
+    ValueTagged *initializer = (init_node == NULL) ? NULL : evaluate(init_node, env_host);
+    ValueTagged *condition = (cond_node == NULL) ? NULL : evaluate(cond_node, env_host);
+    ValueTagged *increment = NULL;
+    while(is_truth(condition, condition->type).boolean_value) {
+        evaluate(node->data.AST_FOR_STMT.body, env_host);
+        increment = evaluate(node->data.AST_FOR_STMT.increment, env_host);
+	    condition = evaluate(node->data.AST_FOR_STMT.condition, env_host); 
     }
     free(condition);
     return NULL;
@@ -339,7 +355,7 @@ static ValueTagged * _printf(ValueTagged *result)
 }
 
 static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
-{   
+{  
     switch (node->tag)
     {
     case AST_LITERAL:
@@ -364,7 +380,9 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
     case AST_IF_STMT:
         return evaluate_if_statement(node, env_host);
     case AST_WHILE_STMT:
-	return evaluate_while_statement(node, env_host);	
+    	return evaluate_while_statement(node, env_host);	
+    case AST_FOR_STMT:
+        return evaluate_for_statement(node, env_host);
     case AST_PRINT_STMT:
         ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr, env_host);
         return ((ValueTagged *)_printf(result));
@@ -382,7 +400,6 @@ extern void interpret(AST *expr)
     if(setjmp(sync_env)) return;
     else
         fprintf(stdout, "Setjmp for interpreter!\n");
-
     ValueTagged *value = evaluate(expr, &env_global);
     //eval_print(value);
 }
