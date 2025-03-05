@@ -29,17 +29,17 @@ SOFTWARE.
 
 int error_flag = FALSE;
 
-extern void set_error_flag(void)
+extern void set_error_flag(void) 
 {
     error_flag = TRUE;
 }
 
-extern void reset_error_flag(void)
+extern void reset_error_flag(void) 
 {
     error_flag = FALSE;
 }
 
-extern void sigint_handler(const int sig)
+extern void sigint_handler(const int sig) 
 {
     fclose(stdout);
     fclose(stdin);
@@ -47,13 +47,13 @@ extern void sigint_handler(const int sig)
     exit(EXIT_SUCCESS);
 }
 
-extern void lexer_error(int line, char *token, char *msg)
+extern void lexer_error(int line, char *token, char *msg) 
 {
     set_error_flag();
     fprintf(stdout, "\033[;31mError:\033[37m %d at %s, %s\n", line, token, msg);
 }
 
-extern void parser_error(Token token, char *msg)
+extern void parser_error(Token token, char *msg) 
 {
     set_error_flag();
     if(token.type == EOF_TOKEN)
@@ -62,17 +62,17 @@ extern void parser_error(Token token, char *msg)
         fprintf(stderr, "Error line: %d at '%s', %s\n", token.line_number, token.lexeme, msg);
 }
 
-extern void runtime_error(AST *node, char *msg) 
+extern void runtime_error(AST *node, char *msg)  
 {
     fprintf(stderr, "Runtime error line: %d at '%s', %s\n", node->data.token->line_number, node->data.token->lexeme, msg);
 }
 
-extern void environment_error(Token *token, char *msg)
+extern void environment_error(Token *token, char *msg) 
 {
-     fprintf(stderr, "Runtime error line: %d at '%s', %s\n", token->line_number, msg);
+    fprintf(stderr, "Runtime error line: %d at '%s', %s\n", token->line_number, token->lexeme, msg);
 }
 
-extern int error(char *msg, char *file, int line) 
+extern int error(char *msg, char *file, int line)  
 {
     fprintf(stderr,"%s: %d ERROR: %s\n", file, line, msg);
     return EXIT_SUCCESS;

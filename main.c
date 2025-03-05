@@ -32,7 +32,7 @@ SOFTWARE.
 #include "error.h"
 #include "cash.h"
 
-int main(int argc, char **argv)
+int main(int argc, char **argv) 
 {
     // Set up the signal handler for SIGINT to close
     // stdin and stdout streams

@@ -306,7 +306,7 @@ struct AST
         AST_EXPR_STMT,
         AST_BLOCK_STMT,
         AST_IF_STMT,
-	    AST_WHILE_STMT,
+	AST_WHILE_STMT,
         AST_FOR_STMT,
         AST_PRINT_STMT,
 

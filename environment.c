@@ -31,7 +31,7 @@ SOFTWARE.
 
 EnvironmentMap env_global = {.env = NULL, .env_enclosing = NULL, .env_size = 0};
 
-static void env_copy_value(ValueTagged *value, Environment *env_value)
+static void env_copy_value(ValueTagged *value, Environment *env_value) 
 {
    if(value == NULL) {
       env_value->value.type = NUMBER_INT;
@@ -40,8 +40,7 @@ static void env_copy_value(ValueTagged *value, Environment *env_value)
    };
    
    env_value->value.type = value->type;
-   switch (value->type)
-   {
+   switch (value->type) {
    case NUMBER_INT:
       env_value->value.literal.integer_value = value->literal.integer_value;
       return;
@@ -60,12 +59,10 @@ static void env_copy_value(ValueTagged *value, Environment *env_value)
    }
 }
 
-extern int env_delete_var(char *name, EnvironmentMap *env_map)
+extern int env_delete_var(char *name, EnvironmentMap *env_map) 
 {
-   for(size_t i = 0; i < env_map->env_size; ++i)
-   {
-      if(!strcmp(name, env_map->env[i].name))
-      {
+   for(size_t i = 0; i < env_map->env_size; ++i) {
+      if(!strcmp(name, env_map->env[i].name)) {
          free(env_map->env[i].name);
          if(env_map->env[i].value.type == STRING) free(env_map->env[i].value.literal.char_value);
          env_map->env_size--;
@@ -76,10 +73,9 @@ extern int env_delete_var(char *name, EnvironmentMap *env_map)
    return 1;
 }
 
-extern void env_reset(EnvironmentMap *env_map)
+extern void env_reset(EnvironmentMap *env_map) 
 {
-   for(size_t i = 0; i < env_map->env_size; ++i) 
-   {
+   for(size_t i = 0; i < env_map->env_size; ++i) {
       free(env_map->env[i].name);
       if(env_map->env[i].value.type == STRING) free(env_map->env[i].value.literal.char_value);
    }
@@ -87,15 +83,13 @@ extern void env_reset(EnvironmentMap *env_map)
    env_map->env_size = 0;
 }
 
-extern void env_assign_var(Token *name, ValueTagged *value, EnvironmentMap *env_map)
+extern void env_assign_var(Token *name, ValueTagged *value, EnvironmentMap *env_map) 
 {
    if(name == NULL) INTERNAL_ERROR("Passed null name argument.");
 
    /* Search Environment for the same variable */
-   for(size_t i = 0; i < env_map->env_size; ++i)
-   {
-      if(!strcmp(name->lexeme, env_map->env[i].name))
-      {
+   for(size_t i = 0; i < env_map->env_size; ++i) {
+      if(!strcmp(name->lexeme, env_map->env[i].name)) {
          if(env_map->env[i].value.type == STRING)
             free(env_map->env[i].value.literal.char_value);
          env_copy_value(value, &env_map->env[i]); 
@@ -113,10 +107,8 @@ extern void env_define_var(Token *name, ValueTagged *value, EnvironmentMap *env_
 {
    if(name == NULL) INTERNAL_ERROR("Passed null name argument.");
    /* Search Environment for the same variable */
-   for(size_t i = 0; i < env_map->env_size; ++i)
-   {
-      if(!strcmp(name->lexeme, env_map->env[i].name))
-      {
+   for(size_t i = 0; i < env_map->env_size; ++i) {
+      if(!strcmp(name->lexeme, env_map->env[i].name)) {
          if(env_map->env[i].value.type == STRING)
             free(env_map->env[i].value.literal.char_value);
          env_copy_value(value, &env_map->env[i]); 
@@ -132,10 +124,11 @@ extern void env_define_var(Token *name, ValueTagged *value, EnvironmentMap *env_
    env_map->env_size++;
 }
 
-extern ValueTagged *env_get_var(Token *name, EnvironmentMap *env_map)
+extern ValueTagged *env_get_var(Token *name, EnvironmentMap *env_map) 
 {
-   for(size_t i = 0; i < env_map->env_size; ++i)
+   for(size_t i = 0; i < env_map->env_size; ++i) { 
       if(!strcmp(env_map->env[i].name, name->lexeme)) return &env_map->env[i].value;
+    }
   
    if(env_map->env_enclosing != NULL) return env_get_var(name, env_map->env_enclosing);
 

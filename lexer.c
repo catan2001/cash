@@ -50,12 +50,11 @@ static const ReservedWordMapType reserved_word_map[] = {
     {"eof",     EOF_TOKEN}
 };
 
-static int compare_token(const char *token, const char *value)
+static int compare_token(const char *token, const char *value) 
 {
     if (strlen(token) != strlen(value))
         return EXIT_FAILURE;
-    for (size_t i = 0; token[i] != 0; ++i)
-    {
+    for (size_t i = 0; token[i] != 0; ++i) {
         if (token[i] != value[i])
             return EXIT_FAILURE;
     }
@@ -66,8 +65,7 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
 {
     char **new_tokens = realloc(tokens, (*token_cnt + 1) * sizeof(char *));
     /* Deallocate memory if realloc fails */
-    if (!new_tokens)
-    {
+    if (!new_tokens) {
         INTERNAL_ERROR("Failed to reallocate memory during add_token!");
         for (size_t j = 0; j < *token_cnt; ++j)
             free(tokens[j]);
@@ -78,8 +76,7 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
 
     /* Copy token into an array of tokens */
     tokens[*token_cnt] = strdup(token);
-    if (!tokens[*token_cnt])
-    {
+    if (!tokens[*token_cnt]) {
         INTERNAL_ERROR("Tokenizer strdup failed!");
         exit(EXIT_FAILURE);
     }
@@ -88,25 +85,24 @@ static char **add_token(char **tokens, size_t *token_cnt, char *token)
     return tokens;
 }
 
-static int is_digit(const char c)
+static int is_digit(const char c) 
 {
     return c >= '0' && c <= '9';
 }
 
-static int is_letter(char c)
+static int is_letter(char c) 
 {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-static CharacterType type_of_character(char c)
+static CharacterType type_of_character(char c) 
 {
     /* Determine if letter, number (float or int) or underscore */
     if(is_digit(c) || is_letter(c) || c == '_' || c =='.')
         return OTHER;
 
     /* Determine if Special characters */
-    switch (c)
-    {
+    switch (c) {
             case '~':  case '|': case ';': case '&': case '#': 
             case '\'': case '(': case ')': case '{': case '}':
             case '*':  case '+': case '-': case '%': case '/':
@@ -124,17 +120,15 @@ static CharacterType type_of_character(char c)
     }
 }
 
-static TokenType classify_special_token(const char *token, Token *ctoken)
+static TokenType classify_special_token(const char *token, Token *ctoken) 
 {   
     ctoken->lexeme = strdup(token);
     ctoken->literal.char_value = ctoken->lexeme;
     if(!ctoken->lexeme)
         return FAILED_TO_CLASSIFY;
 
-    if (type_of_character(token[1]) == SPECIAL)
-    {
-        switch (token[0])
-        {
+    if (type_of_character(token[1]) == SPECIAL) {
+        switch (token[0]) {
         case '<':
             return (token[1] == '=') ? LESS_EQUAL : REDIRECTION_LEFT_LESS_RELATIONAL;
         case '>':
@@ -177,8 +171,7 @@ static TokenType classify_number(const char *token, Token *ctoken)
         return FAILED_TO_CLASSIFY;
 
     for(int i = 0; token[i]; ++i) {
-        if(token[i] == '.') 
-        {
+        if(token[i] == '.') {
             ctoken->literal.float_value = atof(token);
             return NUMBER_FLOAT;
         }
@@ -187,7 +180,7 @@ static TokenType classify_number(const char *token, Token *ctoken)
     return NUMBER_INT;
 }
 
-static TokenType classify_reserved_words(const char *token, Token *ctoken)
+static TokenType classify_reserved_words(const char *token, Token *ctoken) 
 {
     /* Initialize lexeme and literal value to NULL*/
     ctoken->lexeme = strdup(token);
@@ -209,7 +202,7 @@ static TokenType classify_reserved_words(const char *token, Token *ctoken)
     return IDENTIFIER;
 }
 
-extern char **tokenizer(char *cmd, size_t *token_cnt)
+extern char **tokenizer(char *cmd, size_t *token_cnt) 
 {
     if (cmd == NULL || !cmd[0] || cmd[0] == '\n')
         return NULL;
@@ -220,10 +213,8 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
     /* Reinitialize token count back to zero */
     *token_cnt = 0;
     
-    for (size_t i = 0; cmd[i]; ++i)
-    {
-        switch (type_of_character(cmd[i]))
-        {
+    for (size_t i = 0; cmd[i]; ++i) {
+        switch (type_of_character(cmd[i])) {
         case UNUSED_CHARACTERS:
             fprintf(stderr, "error: Character is not allowed in Cash!\n\t Error at: %d! \n", i);
             set_error_flag();
@@ -232,8 +223,7 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
             char special_token[3] = {cmd[i], '\0', '\0'};
 
             /* Copy previous token into the array */
-            if (head_position < i)
-            {
+            if (head_position < i) {
                 cmd[i] = '\0'; 
                 tokens = add_token(tokens, token_cnt, &cmd[head_position]);
                 /* Position head onto new token */
@@ -252,8 +242,7 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
 
         case QUOTES:
             /*Report an error if an identifier is followed by quotes*/
-            if (head_position < i)
-            {
+            if (head_position < i) {
                 fprintf(stderr,"error: Syntax Error at %d! Expected valid separator after identifier.\n", i);
                 set_error_flag();
                 return tokens;
@@ -285,8 +274,7 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
         case SPACE:
         case NEW_LINE:
             /*Copy token into the array*/
-            if (head_position < i)
-            {
+            if (head_position < i) {
                 cmd[i] = '\0'; // null terminate token
                 tokens = add_token(tokens, token_cnt, &cmd[head_position]);
             }
@@ -302,7 +290,7 @@ extern char **tokenizer(char *cmd, size_t *token_cnt)
     return tokens;
 }
 
-extern size_t eof_token(Token **ctoken, size_t number_of_ctokens)
+extern size_t eof_token(Token **ctoken, size_t number_of_ctokens) 
 {
     number_of_ctokens++;
     *ctoken = realloc(*ctoken, sizeof(Token) * number_of_ctokens);
@@ -312,20 +300,18 @@ extern size_t eof_token(Token **ctoken, size_t number_of_ctokens)
     return number_of_ctokens;
 }
 
-extern Token *token_classifier(char **token, Token *ctoken, const size_t number_of_tokens, size_t *number_of_ctokens)
+extern Token *token_classifier(char **token, Token *ctoken, const size_t number_of_tokens, size_t *number_of_ctokens) 
 {
     if (!token)
         return NULL;
 
     ctoken = realloc(ctoken, sizeof(Token) * (number_of_tokens));
-    if (ctoken == NULL)
-    {
+    if (ctoken == NULL) {
         fprintf(stderr, "Failed to allocate memory for ctoken!");
         free(ctoken);
     }
 
-    for (size_t i = 0; i < number_of_tokens - *number_of_ctokens; ++i)
-    {
+    for (size_t i = 0; i < number_of_tokens - *number_of_ctokens; ++i) {
         if (type_of_character(token[i][0]) == SPECIAL)
             ctoken[*number_of_ctokens + i].type = classify_special_token(token[i], &ctoken[*number_of_ctokens + i]);
         else if (type_of_character(token[i][0]) == QUOTES)
@@ -335,8 +321,7 @@ extern Token *token_classifier(char **token, Token *ctoken, const size_t number_
         else 
             ctoken[*number_of_ctokens + i].type = classify_reserved_words(token[i], &ctoken[*number_of_ctokens + i]);
 
-        if (ctoken[*number_of_ctokens + i].type == FAILED_TO_CLASSIFY)
-        {
+        if (ctoken[*number_of_ctokens + i].type == FAILED_TO_CLASSIFY) {
             fprintf(stderr, "error: Failed to classify token %s\n", token[i]);
             set_error_flag();
             for (size_t j = 0; j < (i + 1); j++)

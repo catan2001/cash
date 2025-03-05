@@ -35,16 +35,15 @@ static jmp_buf sync_env;
 
 static ValueTagged *evaluate(AST *, EnvironmentMap *);
 
-static void runtime_error_mode(void)
+static void runtime_error_mode(void) 
 {
     longjmp(sync_env, TRUE);
 }
 
-static void eval_print(ValueTagged *result)
+static void eval_print(ValueTagged *result) 
 { 
     if(result == NULL) return;
-    switch (result->type)
-    {
+    switch (result->type) {
     case NUMBER_INT:
         fprintf(stdout, "Value INT = %d\n", result->literal.integer_value);
         break;
@@ -64,21 +63,31 @@ static void eval_print(ValueTagged *result)
     }
 }
 
-static ValueTagged *literal_value(AST *node)
+static void free_value(ValueTagged *value)
+{   
+    if(value == NULL) return;
+    if(value->type == STRING) {
+        free(value->literal.char_value);
+    }
+    free(value);
+}
+
+static ValueTagged *literal_value(AST *node) 
 {
-    if(node->tag != AST_LITERAL) 
-    {
+    if(node->tag != AST_LITERAL) {
         INTERNAL_ERROR("Tried to return non-literal node.");
         abort();
     }
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
-    return (result->literal = node->data.token->literal, result->type = node->data.token->type, result);
+    result->type = node->data.token->type;
+    if(node->data.token->type == STRING) 
+        return(result->literal.char_value = strdup(node->data.token->literal.char_value), result);
+    return (result->literal = node->data.token->literal, result);
 }
 
-static ValueTagged *identifier_value(AST *node, EnvironmentMap *env_host)
+static ValueTagged *identifier_value(AST *node, EnvironmentMap *env_host) 
 {
-    if(node->tag != AST_IDENTIFIER)
-    {
+    if(node->tag != AST_IDENTIFIER) {
         INTERNAL_ERROR("Tried to return non-identifier node.");
         abort();
     }
@@ -88,7 +97,7 @@ static ValueTagged *identifier_value(AST *node, EnvironmentMap *env_host)
     return (result->literal = found->literal, result->type = found->type, result);
 }
 
-static Value is_truth(ValueTagged *value, TokenType type)
+static Value is_truth(ValueTagged *value, TokenType type) 
 {
     Value ret;
     if(type == NUMBER_INT) 
@@ -101,19 +110,17 @@ static Value is_truth(ValueTagged *value, TokenType type)
     return (ret.boolean_value = TRUE, ret);
 }
 
-static ValueTagged *evaluate_unary_expression(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_unary_expression(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *right = evaluate(node->data.AST_UNARY_EXPR.right, env_host);
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
     TokenType operator_type = node->data.AST_UNARY_EXPR.token->type;
     result->type = right->type;
 
-    switch(operator_type)
-    {
+    switch(operator_type) {
         case SUBTRACT:
         {
-            if(right->type == STRING) 
-            {
+            if(right->type == STRING) {
                 runtime_error(node->data.AST_UNARY_EXPR.right, "Can't do unary subtract operation on strings!");
                 break;
             }
@@ -122,40 +129,36 @@ static ValueTagged *evaluate_unary_expression(AST *node, EnvironmentMap *env_hos
                 result->literal.float_value = (-1)*right->literal.float_value;
             if(right->type == NUMBER_INT)
                 result->literal.integer_value = (-1)*(right->literal.integer_value); 
-            if(right->type == TRUE_TOKEN || right->type == FALSE_TOKEN)
-            {
+            if(right->type == TRUE_TOKEN || right->type == FALSE_TOKEN) {
                 result->literal.integer_value = (-1)*right->literal.boolean_value;
                 result->type = NUMBER_INT;
             }
-            free(right);
+            free_value(right);
             return result;                
         }
         case XOR:
         {
-            if(right->type == STRING) 
-            {
+            if(right->type == STRING) {
                 runtime_error(node->data.AST_UNARY_EXPR.right, "Can't do unary XOR operation on strings!");
                 break;
             }
-            if(right->type == NUMBER_FLOAT) 
-            {
+            if(right->type == NUMBER_FLOAT) {
                 runtime_error(node->data.AST_UNARY_EXPR.right, "Can't do unary subtract operation on float!");
                 break;
             }
             if(right->type == NUMBER_INT)
                 result->literal.integer_value = ~right->literal.integer_value; 
-            if(right->type == TRUE_TOKEN || right->type == FALSE_TOKEN)
-            {
+            if(right->type == TRUE_TOKEN || right->type == FALSE_TOKEN) {
                 result->literal.integer_value = ~right->literal.boolean_value;
                 result->type = NUMBER_INT;
             }
-            free(right);
+            free_value(right);
             return result;
         }
         case EXCLAMATION:
         {
             result->literal.boolean_value = !is_truth(right, right->type).boolean_value;
-            free(right);
+            free_value(right);
             return (result->type = (result->literal.boolean_value) ? TRUE_TOKEN : FALSE_TOKEN, result);
         }
         default:
@@ -163,13 +166,13 @@ static ValueTagged *evaluate_unary_expression(AST *node, EnvironmentMap *env_hos
             break;
     }
 
-    free(result);
-    free(right);
+    free_value(result);
+    free_value(right);
     runtime_error_mode();
     abort();
 }
 
-static ValueTagged *evaluate_binary_expression(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_binary_expression(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *left = evaluate(node->data.AST_BINARY_EXPR.left, env_host);
     ValueTagged *right = evaluate(node->data.AST_BINARY_EXPR.right, env_host);
@@ -227,24 +230,24 @@ static ValueTagged *evaluate_binary_expression(AST *node, EnvironmentMap *env_ho
                 else
                     break;
 
-                return (free(left), free(right), result);
+                return (free_value(left), free_value(right), result);
             }
             default:
                 break;
         }
-    free(left);
-    free(right);
-    free(result);
+    free_value(left);
+    free_value(right);
+    free_value(result);
     runtime_error_mode();
     abort();
 } 
 
-static ValueTagged *evaulate_grouping_expression(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaulate_grouping_expression(AST *node, EnvironmentMap *env_host) 
 {
     return evaluate(node->data.AST_GROUPING_EXPR.left, env_host);
 }
 
-static ValueTagged *evaluate_logical_expression(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_logical_expression(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *left = evaluate(node->data.AST_LOGICAL_EXPR.left, env_host);
 
@@ -258,68 +261,76 @@ static ValueTagged *evaluate_logical_expression(AST *node, EnvironmentMap *env_h
     return evaluate(node->data.AST_LOGICAL_EXPR.right, env_host);
 }
 
-static ValueTagged *evaluate_assign_expression(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_assign_expression(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *value = evaluate(node->data.AST_ASSIGN_EXPR.expr, env_host);
     Token *name = node->data.AST_ASSIGN_EXPR.token;
     
     env_assign_var(name, value, env_host);
-    return value;
+    return (free_value(value), NULL);
 }
 
-static ValueTagged *evaluate_if_statement(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_if_statement(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *condition = evaluate(node->data.AST_IF_STMT.condition, env_host);
     if(is_truth(condition, condition->type).boolean_value)
-        evaluate(node->data.AST_IF_STMT.true_branch, env_host);
+        free_value(evaluate(node->data.AST_IF_STMT.true_branch, env_host));
     else
-        evaluate(node->data.AST_IF_STMT.else_branch, env_host);
+        free_value(evaluate(node->data.AST_IF_STMT.else_branch, env_host));
     
-    free(condition);
-    return NULL;
+    return (free_value(condition), NULL);
 }
 
-static ValueTagged *evaluate_while_statement(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_while_statement(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *condition = evaluate(node->data.AST_WHILE_STMT.condition, env_host);
     while(is_truth(condition, condition->type).boolean_value) {
-        evaluate(node->data.AST_WHILE_STMT.body, env_host);
+        free_value(evaluate(node->data.AST_WHILE_STMT.body, env_host));
+        free_value(condition);
     	condition = evaluate(node->data.AST_WHILE_STMT.condition, env_host); 
     }
-    free(condition);
-    return NULL;
+    return (free_value(condition), NULL);
 }
 
-static ValueTagged *evaluate_for_statement(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_for_statement(AST *node, EnvironmentMap *env_host) 
 {
     AST *init_node = node->data.AST_FOR_STMT.initializer;
     AST *cond_node = node->data.AST_FOR_STMT.condition;
-    ValueTagged *initializer = (init_node == NULL) ? NULL : evaluate(init_node, env_host);
-    ValueTagged *condition = (cond_node == NULL) ? NULL : evaluate(cond_node, env_host);
+
+    EnvironmentMap env_child = {NULL, env_host, 0};
+    ValueTagged *initializer = (init_node == NULL) ? NULL : evaluate(init_node, &env_child);
+    ValueTagged *condition = (cond_node == NULL) ? NULL : evaluate(cond_node, &env_child);
     ValueTagged *increment = NULL;
+    
     while(is_truth(condition, condition->type).boolean_value) {
-        evaluate(node->data.AST_FOR_STMT.body, env_host);
-        increment = evaluate(node->data.AST_FOR_STMT.increment, env_host);
-	    condition = evaluate(node->data.AST_FOR_STMT.condition, env_host); 
+        free_value(condition);
+        free_value(increment);
+        free_value(evaluate(node->data.AST_FOR_STMT.body, &env_child));
+        increment = evaluate(node->data.AST_FOR_STMT.increment, &env_child);
+	    condition = evaluate(node->data.AST_FOR_STMT.condition, &env_child); 
     }
-    free(condition);
+    
+    env_reset(&env_child);
+    free_value(initializer);
+    free_value(condition);
+    free_value(increment);
     return NULL;
 }
 
-static ValueTagged *evaluate_block_statement(AST *node, EnvironmentMap *env_parrent, EnvironmentMap *env_host)
+static ValueTagged *evaluate_block_statement(AST *node, EnvironmentMap *env_parrent, EnvironmentMap *env_host) 
 {
     env_host->env_enclosing = env_parrent;
 
     for(size_t i = 0; i < node->data.AST_BLOCK_STMT.stmt_num; ++i)
     {
-        ValueTagged *result = evaluate(node->data.AST_BLOCK_STMT.stmt_list[i], env_host);
+        free_value(evaluate(node->data.AST_BLOCK_STMT.stmt_list[i], env_host));
     }
     /* Free memory of Local Environment */
     env_reset(env_host);
     return NULL;
 }
 
-static ValueTagged *evaluate_variable_statement(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate_variable_statement(AST *node, EnvironmentMap *env_host) 
 {   
     Token *name = node->data.AST_VAR_DECL_STMT.name;
     ValueTagged *value = NULL;
@@ -327,37 +338,43 @@ static ValueTagged *evaluate_variable_statement(AST *node, EnvironmentMap *env_h
         value = evaluate(node->data.AST_VAR_DECL_STMT.init, env_host);
 
     env_define_var(name, value, env_host);
-    return value;            
+    return (free_value(value), NULL);
 }
 
-static ValueTagged * _printf(ValueTagged *result)
-{    
-    switch (result->type)
-    {
+static ValueTagged * _printf(ValueTagged *result) 
+{   
+    if(error_flag) return NULL;
+    switch (result->type) {
         case NUMBER_INT:
-            fprintf(stdout, "%d\n", result->literal.integer_value);
+            fprintf(stdout, "%d", result->literal.integer_value);
             break;
         case NUMBER_FLOAT:
-            fprintf(stdout, "%lf\n", result->literal.float_value);
+            fprintf(stdout, "%lf", result->literal.float_value);
             break;
         case STRING:
-            fprintf(stdout, "%s\n", result->literal.char_value);
+            for(size_t i = 0; result->literal.char_value[i] != '\0'; ++i) {
+                if(result->literal.char_value[i] == '\\' && result->literal.char_value[i+1] == 'n') {
+                    fprintf(stdout, "\n");
+                    i++;
+                }
+                else
+                    fprintf(stdout, "%c", result->literal.char_value[i]);
+            }
             break;
         case TRUE_TOKEN:
         case FALSE_TOKEN:
-            fprintf(stdout, "%d\n", result->literal.boolean_value);
+            fprintf(stdout, "%d", result->literal.boolean_value);
             break;
        default:
             error("Tried to print undefined undefined ValueTagged value in eval_print", __FILE__, __LINE__);
             break;
     }
-    return result;
+    return (free_value(result), NULL);
 }
 
-static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
+static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host) 
 {  
-    switch (node->tag)
-    {
+    switch (node->tag) {
     case AST_LITERAL:
         return literal_value(node);
     case AST_IDENTIFIER:
@@ -395,13 +412,12 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
     return NULL;
 }
 
-extern void interpret(AST *expr)
+extern void interpret(AST *expr) 
 {
     if(setjmp(sync_env)) return;
     else
         fprintf(stdout, "Setjmp for interpreter!\n");
     ValueTagged *value = evaluate(expr, &env_global);
-    //eval_print(value);
+    free_value(value);
 }
-
 

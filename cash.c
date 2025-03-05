@@ -34,6 +34,7 @@ SOFTWARE.
 #include "error.h"
 #include "lexer.h"
 #include "parser.h"
+#include "environment.h"
 #include "interpreter.h"
 #include "cash.h"
 
@@ -46,17 +47,16 @@ static char * file_read_line(FILE *file)
     return strdup(pcmd);
 }
 
-extern void clear_terminal(void)
+extern void clear_terminal(void) 
 {
     printf("\033[H\033[J");
     fflush(stdout);
     return;
 }
 
-extern int print_term(char *msg)
+extern int print_term(char *msg) 
 {
-    if (isatty(fileno(stdin)))
-    {
+    if (isatty(fileno(stdin))) {
         fprintf(stdout, msg);
         return EXIT_SUCCESS;
     }   
@@ -65,7 +65,7 @@ extern int print_term(char *msg)
     return EXIT_FAILURE;
 }
 
-extern void read_cmd(char *pcmd, const int lcmd)
+extern void read_cmd(char *pcmd, const int lcmd) 
 {
     if (isatty(fileno(stdin)))
         fprintf(stdout, "cash> ");
@@ -94,8 +94,7 @@ extern void run_file(char *file_name)
     size_t number_of_ctokens = 0;
     size_t number_of_statements = 0;
 
-    for(char *line = file_read_line(file); line != NULL; line = (line_number++, file_read_line(file)))
-    {
+    for(char *line = file_read_line(file); line != NULL; line = (line_number++, file_read_line(file))) {
         if((tokens = tokenizer(pcmd, &number_of_tokens)) == NULL) continue;
         if((ctokens = token_classifier(tokens, ctokens, number_of_ctokens + number_of_tokens, &number_of_ctokens)) == NULL) TODO("Add error");
         free(line);
@@ -106,17 +105,20 @@ extern void run_file(char *file_name)
     ast = parser(ctokens, &number_of_statements);
     if(ast == NULL || error_flag) goto DEALLOCATE_AST_LABEL;
 
-    for(size_t i = 0; i < number_of_statements; ++i) 
-        if(ast[i] != NULL) 
-        {
+    for(size_t i = 0; i < number_of_statements; ++i) {
+        if(ast[i] != NULL) {
             ast_print(ast[i]);
             interpret(ast[i]);
         }
+    }
     //Deallocate Heap memory 
+    env_reset(&env_global);
+
     DEALLOCATE_AST_LABEL:
-    for(size_t i = 0; i < number_of_statements; ++i)
+    for(size_t i = 0; i < number_of_statements; ++i) {
         if(ast[i] != NULL) 
             ast_free(ast[i]);      
+    }
     free(ast);
 
     DEALLOCATE_CTOKENS_LABEL:
@@ -133,10 +135,9 @@ extern void run_file(char *file_name)
     exit(EXIT_SUCCESS); 
 }
 
-extern void run_term(void)
+extern void run_term(void) 
 {
-    while (TRUE)
-    {
+    while (TRUE) {
         char **tokens;
         size_t number_of_tokens = 0;
         size_t number_of_ctokens = 0;
@@ -154,17 +155,18 @@ extern void run_term(void)
         /* Add EOF token at the end */
         number_of_ctokens = eof_token(&ctokens, number_of_ctokens);
 
-        
         ast = parser(ctokens, &number_of_statements);
         if(ast == NULL || error_flag) goto DEALLOCATE_AST_LABEL;
 
         for(size_t i = 0; i < number_of_statements; ++i) 
-            if(ast[i] != NULL) 
-            {
+            if(ast[i] != NULL) {
                 ast_print(ast[i]);
                 interpret(ast[i]);
             }
+
         //Deallocate Heap memory 
+        env_reset(&env_global);
+
         DEALLOCATE_AST_LABEL:
         for(size_t i = 0; i < number_of_statements; ++i)
             if(ast[i] != NULL) 
@@ -172,7 +174,7 @@ extern void run_term(void)
         free(ast);
 
         DEALLOCATE_CTOKENS_LABEL:
-        for (size_t i = 0; ctokens[i].type != EOF_TOKEN; ++i) {
+        for (size_t i = 0; i < number_of_ctokens; ++i) {
             free(ctokens[i].lexeme);
         }
         free(ctokens);
@@ -183,6 +185,7 @@ extern void run_term(void)
         }
         free(tokens);
         wait(NULL);
+        return;
     } 
 }
 
@@ -194,6 +197,6 @@ extern void cash(int argc,char **argv)
         /* Run cash from file */
         run_file(argv[1]);
     }
-    run_term();
     /* run cash from terminal */
+    run_term();
 }

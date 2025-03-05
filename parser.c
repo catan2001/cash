@@ -32,7 +32,7 @@ SOFTWARE.
 
 static jmp_buf sync_env;
 
-static int next_position(size_t *current_position, Token *token_list)
+static int next_position(size_t *current_position, Token *token_list) 
 {
     if(token_list[*current_position+1].type == EOF_TOKEN || token_list[*current_position].type == EOF_TOKEN)
         return 1;
@@ -42,7 +42,7 @@ static int next_position(size_t *current_position, Token *token_list)
     return 0;
 }
 
-static AST *ast_new(AST ast)
+static AST *ast_new(AST ast) 
 {
     AST *ast_ptr = malloc(sizeof(AST));
     if(ast_ptr) *ast_ptr = ast;
@@ -51,16 +51,14 @@ static AST *ast_new(AST ast)
     return ast_ptr;
 }
 
-extern void ast_print(AST *ast)
+extern void ast_print(AST *ast) 
 {
-    if(!ast) 
-    {
+    if(!ast) {
         fprintf(stderr, "Error! AST IS NULL!\n");
         return;
     }
 
-    switch(ast->tag)
-    {
+    switch(ast->tag) {
         case AST_VAR_DECL_STMT:
         {
             fprintf(stdout, "Variable Declaration Statement Node: %s\n", ast->data.AST_VAR_DECL_STMT.name->lexeme);
@@ -124,10 +122,7 @@ extern void ast_print(AST *ast)
                 fprintf(stdout, "Increment Node is NULL\n");
 
             fprintf(stdout, "Body node ast:\n");
-            if(ast->data.AST_FOR_STMT.body != NULL)
-                ast_print(ast->data.AST_FOR_STMT.body);
-            else
-                fprintf(stdout, "body Node is NULL\n"); 
+            ast_print(ast->data.AST_FOR_STMT.body);
         }
         case AST_PRINT_STMT: 
         {
@@ -170,15 +165,13 @@ extern void ast_print(AST *ast)
     }
 }
 
-extern void ast_free(AST *ast)
+extern void ast_free(AST *ast) 
 {
-    if(!ast) 
-    {
+    if(!ast) {
         fprintf(stderr, "%s: %d Error: Cannot free AST: %s\n", __FILE__, __LINE__, ast->data.token->lexeme);
         return;
     }
-    switch(ast->tag)
-    {
+    switch(ast->tag) {
         case AST_VAR_DECL_STMT:
         {
             if(ast->data.AST_VAR_DECL_STMT.init != NULL)
@@ -194,6 +187,7 @@ extern void ast_free(AST *ast)
         {
             for(size_t i = 0; i < ast->data.AST_BLOCK_STMT.stmt_num; ++i)
                 ast_free(ast->data.AST_BLOCK_STMT.stmt_list[i]);
+            free(ast->data.AST_BLOCK_STMT.stmt_list);
             break;
         }
         case AST_IF_STMT:
@@ -220,8 +214,7 @@ extern void ast_free(AST *ast)
                 ast_free(ast->data.AST_FOR_STMT.condition);
             if(ast->data.AST_FOR_STMT.increment != NULL)
                 ast_free(ast->data.AST_FOR_STMT.increment);
-            if(ast->data.AST_FOR_STMT.body != NULL)
-                ast_free(ast->data.AST_FOR_STMT.body);
+            ast_free(ast->data.AST_FOR_STMT.body);
             break;
         } 
         case AST_PRINT_STMT: 
@@ -256,12 +249,10 @@ extern void ast_free(AST *ast)
     free(ast);
 }
 
-static void synchronize(Token *token_list, size_t *token_position)
+static void synchronize(Token *token_list, size_t *token_position) 
 {
-    while(!next_position(token_position, token_list))
-    {
-       switch(token_list[*token_position].type)
-        {
+    while(!next_position(token_position, token_list)) {
+       switch(token_list[*token_position].type) {
             case SEMICOLON:
             case FUNCT:
             case CLASS:
@@ -281,7 +272,7 @@ static void synchronize(Token *token_list, size_t *token_position)
     (*token_position)++;
 }
 
-static void panic_mode(Token *token_list, size_t *token_position)
+static void panic_mode(Token *token_list, size_t *token_position) 
 {
     synchronize(token_list, token_position);
     // Jump back to sync_env
@@ -290,10 +281,9 @@ static void panic_mode(Token *token_list, size_t *token_position)
 
 static AST *expression(Token *, size_t *, AST *);
 
-static AST *primary(Token *token_list, size_t *token_position, AST *ast)
+static AST *primary(Token *token_list, size_t *token_position, AST *ast) 
 {
-    switch (token_list[*token_position].type)
-    {
+    switch (token_list[*token_position].type) {
         case NUMBER_FLOAT:
         case NUMBER_INT:
         case STRING:
@@ -322,8 +312,7 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
                 break;  
             }
             ast = expression(token_list, token_position, ast);
-            if (token_list[*token_position].type == RIGHT_PARENTHESIS)
-            {
+            if (token_list[*token_position].type == RIGHT_PARENTHESIS) {
                 next_position(token_position, token_list);
                 return ast;
             }
@@ -349,11 +338,11 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
     return NULL;
 }
 
-static AST *unary(Token *token_list, size_t *token_position, AST *ast)
+static AST *unary(Token *token_list, size_t *token_position, AST *ast) 
 {
     if(token_list[*token_position].type == SUBTRACT    ||
        token_list[*token_position].type == EXCLAMATION ||
-       token_list[*token_position].type == XOR)
+       token_list[*token_position].type == XOR) 
     {
         Token *operator = &token_list[*token_position];
         if(next_position(token_position, token_list)) {
@@ -376,7 +365,7 @@ static AST *unary(Token *token_list, size_t *token_position, AST *ast)
     return primary(token_list, token_position, ast);
 }
 
-static AST *factor(Token *token_list, size_t *token_position, AST *ast)
+static AST *factor(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = unary(token_list, token_position, ast);
 
@@ -404,7 +393,7 @@ static AST *factor(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-static AST *term(Token *token_list, size_t *token_position, AST *ast)
+static AST *term(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = factor(token_list, token_position, ast);
 
@@ -432,7 +421,7 @@ static AST *term(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
+static AST *comparison(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = term(token_list, token_position, ast);
 
@@ -462,7 +451,7 @@ static AST *comparison(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-static AST *equality(Token *token_list, size_t *token_position, AST *ast)
+static AST *equality(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = comparison(token_list, token_position, ast);
 
@@ -490,12 +479,11 @@ static AST *equality(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-static AST *logic_and(Token *token_list, size_t *token_postition, AST *ast)
+static AST *logic_and(Token *token_list, size_t *token_postition, AST *ast) 
 {
     ast = equality(token_list, token_postition, ast);
 
-    while(token_list[*token_postition].type == DOUBLE_AND) 
-    {
+    while(token_list[*token_postition].type == DOUBLE_AND) {
         Token *operator = &token_list[*token_postition];
         if(next_position(token_postition, token_list)) {
             parser_error(*operator, "Missing right operator!\n");
@@ -517,12 +505,11 @@ static AST *logic_and(Token *token_list, size_t *token_postition, AST *ast)
     return ast;
 }
 
-static AST *logic_or(Token *token_list, size_t *token_postition, AST *ast)
+static AST *logic_or(Token *token_list, size_t *token_postition, AST *ast) 
 {
     ast = logic_and(token_list, token_postition, ast);
 
-    while(token_list[*token_postition].type == DOUBLE_OR) 
-    {
+    while(token_list[*token_postition].type == DOUBLE_OR) {
         Token *operator = &token_list[*token_postition];
         if(next_position(token_postition, token_list)) {
             parser_error(*operator, "Missing right operator!\n");
@@ -544,23 +531,22 @@ static AST *logic_or(Token *token_list, size_t *token_postition, AST *ast)
     return ast;
 }
 
-static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
+static AST *assignment(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = logic_or(token_list, token_position, ast);
 
-    if(token_list[*token_position].type == EQUAL)
-    {
+    if(token_list[*token_position].type == EQUAL) {
         Token *equals = &token_list[*token_position];
-        if(next_position(token_position, token_list)) 
-        {
+
+        if(next_position(token_position, token_list)) {
             parser_error(token_list[*token_position], "Expected expression after equals sign");
             panic_mode(token_list, token_position);
         }
         AST *value = assignment(token_list, token_position, ast);
         
-        if(ast->tag == AST_IDENTIFIER)
-        {
+        if(ast->tag == AST_IDENTIFIER) {
             Token *name = ast->data.token;
+            ast_free(ast); 
             ast = ast_new((AST)
                 {  
                     .tag = AST_ASSIGN_EXPR,
@@ -570,6 +556,7 @@ static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
                     }
                 }            
             );
+
             return ast;
         }
         
@@ -580,12 +567,12 @@ static AST *assignment(Token *token_list, size_t *token_position, AST *ast)
     return ast;    
 }
 
-static AST *expression(Token *token_list, size_t *token_position, AST *ast)
+static AST *expression(Token *token_list, size_t *token_position, AST *ast) 
 {
     return assignment(token_list, token_position, ast);   
 }
 
-static AST *expression_statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *expression_statement(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = expression(token_list, token_position, ast);
     ast = ast_new((AST)
@@ -606,7 +593,7 @@ static AST *expression_statement(Token *token_list, size_t *token_position, AST 
     return ast;
 }
 
-static AST *print_statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *print_statement(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = expression(token_list, token_position, ast);
     ast = ast_new((AST)
@@ -626,7 +613,7 @@ static AST *print_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-static AST *block_statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *block_statement(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = ast_new((AST)
         {
@@ -638,13 +625,13 @@ static AST *block_statement(Token *token_list, size_t *token_position, AST *ast)
         }
     );
     AST **_stmt_list = ast->data.AST_BLOCK_STMT.stmt_list;
-    while(token_list[*token_position].type != RIGHT_BRACE && token_list[(*token_position) + 1].type != EOF_TOKEN)
-    {
+    while(token_list[*token_position].type != RIGHT_BRACE && token_list[(*token_position) + 1].type != EOF_TOKEN) {
         _stmt_list = realloc(_stmt_list, sizeof(AST *) * (ast->data.AST_BLOCK_STMT.stmt_num + 1));
         _stmt_list[ast->data.AST_BLOCK_STMT.stmt_num] = declaration(token_list, token_position, ast);
+
         if(next_position(token_position, token_list)) {
             TODO("Fix panic mode!");
-            parser_error(token_list[*token_position], "Expected '}' aftertt block statement.");
+            parser_error(token_list[*token_position], "Expected '}' after block statement.");
             panic_mode(token_list, token_position);
         }
         ast->data.AST_BLOCK_STMT.stmt_num++;
@@ -659,18 +646,17 @@ static AST *block_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
-static AST *if_statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *if_statement(Token *token_list, size_t *token_position, AST *ast) 
 {
-    if(token_list[*token_position].type != LEFT_PARENTHESIS)
-    {
+    if(token_list[*token_position].type != LEFT_PARENTHESIS) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected ( after if statement!");
         return ast;
     }
+
     next_position(token_position, token_list);
     AST *condition = expression(token_list, token_position, ast);
-    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
-    {
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected ) after if statement!");
         return ast;
@@ -679,8 +665,7 @@ static AST *if_statement(Token *token_list, size_t *token_position, AST *ast)
     AST *true_branch = statement(token_list, token_position, ast);
     AST *else_branch = NULL;
 
-    if(!next_position(token_position, token_list) && token_list[*token_position].type == ELSE)
-    {
+    if(!next_position(token_position, token_list) && token_list[*token_position].type == ELSE) {
         next_position(token_position, token_list);
         else_branch = statement(token_list, token_position, ast);
     }
@@ -697,18 +682,17 @@ static AST *if_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast; 
 }
 
-static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *while_statement(Token *token_list, size_t *token_position, AST *ast) 
 {
-    if(token_list[*token_position].type != LEFT_PARENTHESIS)
-    {
+    if(token_list[*token_position].type != LEFT_PARENTHESIS) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected ( after while statement!");
         return ast;
     }
+
     next_position(token_position, token_list);
     AST *condition = expression(token_list, token_position, ast);
-    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
-    {
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected ) after while statement!");
         return ast;
@@ -721,24 +705,22 @@ static AST *while_statement(Token *token_list, size_t *token_position, AST *ast)
             .tag = AST_WHILE_STMT,
             .data.AST_WHILE_STMT = {
                 condition,
-		body
+                body
             }
         }            
     );
     return ast; 
 }
 
-static AST *for_statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *for_statement(Token *token_list, size_t *token_position, AST *ast) 
 {
-    if(token_list[*token_position].type != LEFT_PARENTHESIS)
-    {
+    if(token_list[*token_position].type != LEFT_PARENTHESIS) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected ( after while statement!");
         return ast;
     }
 
-    if(next_position(token_position, token_list))
-    {
+    if(next_position(token_position, token_list)) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected expression in initializer part of for statement!");
         return ast;
@@ -746,59 +728,50 @@ static AST *for_statement(Token *token_list, size_t *token_position, AST *ast)
 
     AST *initializer;
     
-    if(token_list[*token_position].type == SEMICOLON) 
-    {
+    if(token_list[*token_position].type == SEMICOLON)  {
         initializer = NULL;
-    } else if(token_list[*token_position].type == VAR)
-    {
+    } else if(token_list[*token_position].type == VAR) {
+        if(next_position(token_position, token_list)) {TODO("FIX ERROR!");}
 	    initializer = variable_declaration(token_list, token_position, initializer);
-    } else  
-    {
+    } else {
 	    initializer = expression_statement(token_list, token_position, initializer);
     } 
 
-    if(token_list[*token_position].type != SEMICOLON)
-    {
+    if(token_list[*token_position].type != SEMICOLON) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected ; after initializerializer in for statement!");
         return ast;
     }
 
-    if(next_position(token_position, token_list))
-    {
+    if(next_position(token_position, token_list)) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected expression in initializerializer part of for statement!");
         return ast;
     }
 
     AST *condition = NULL;
-    if(token_list[*token_position].type != SEMICOLON)
-    {
+    if(token_list[*token_position].type != SEMICOLON) {
 	    condition = expression(token_list, token_position, condition);
     }
 
-    if(token_list[*token_position].type != SEMICOLON)
-    {
+    if(token_list[*token_position].type != SEMICOLON) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected ( after while statement!");
         return ast;
     }
 
-    if(next_position(token_position, token_list))
-    {
+    if(next_position(token_position, token_list)) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected expression in initializer part of for statement!");
         return ast;
     }
 
     AST *increment = NULL;
-    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
-    {
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
 	    increment = expression(token_list, token_position, ast);
     }
 
-    if(token_list[*token_position].type != RIGHT_PARENTHESIS)
-    {
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
         TODO("Fix errors");
         parser_error(token_list[*token_position], "Expected closing ) in for statement!");
         return ast;
@@ -807,7 +780,7 @@ static AST *for_statement(Token *token_list, size_t *token_position, AST *ast)
     next_position(token_position, token_list);
     AST *body = statement(token_list, token_position, ast);
 
-    ast = ast_new((AST)
+    ast = ast_new((AST) 
         {
             .tag = AST_FOR_STMT,
             .data.AST_FOR_STMT = {
@@ -823,11 +796,11 @@ static AST *for_statement(Token *token_list, size_t *token_position, AST *ast)
 
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
-    if(token_list[*token_position].type != IDENTIFIER)
-    {
+    if(token_list[*token_position].type != IDENTIFIER) {
         parser_error(token_list[*token_position], "Expected Identifier after var.");
         return ast;
     }
+
     Token *name = &token_list[*token_position];
     AST *initializer = NULL;
     if(next_position(token_position,token_list))
@@ -853,11 +826,10 @@ static AST *variable_declaration(Token *token_list, size_t *token_position, AST 
         set_error_flag();
         panic_mode(token_list, token_position);
     }       
-
     return ast;
 }
 
-static AST *statement(Token *token_list, size_t *token_position, AST *ast)
+static AST *statement(Token *token_list, size_t *token_position, AST *ast) 
 {
     /* print statement rule */
     if(token_list[*token_position].type == PRINTF) {
@@ -906,7 +878,7 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
     return expression_statement(token_list, token_position, ast);
 }
 
-static AST *declaration(Token *token_list, size_t *token_position, AST *ast)
+static AST *declaration(Token *token_list, size_t *token_position, AST *ast) 
 {
     if(!setjmp(sync_env))
         fprintf(stdout, "Setjmp for parser!\n");
@@ -914,15 +886,13 @@ static AST *declaration(Token *token_list, size_t *token_position, AST *ast)
     if(token_list[*token_position].type == EOF_TOKEN)
         return ast;
     
-    if(token_list[*token_position].type == VAR) 
-    {
+    if(token_list[*token_position].type == VAR) {
         if(next_position(token_position, token_list)) {
             parser_error(token_list[*token_position], "Expected expression after var.");
             return ast;
         }
         return variable_declaration(token_list, token_position, ast);
     }
-    
     return statement(token_list, token_position, ast);
 }
 
@@ -932,6 +902,7 @@ extern AST **parser(Token *token_list, size_t *statement_number)
     size_t num_of_stmt = 0;
     AST **ast = NULL;
     *statement_number = 0;
+
     do {
         ast = realloc(ast, sizeof(AST *)*(num_of_stmt+1));
         ast[num_of_stmt] = (ast[num_of_stmt] = NULL, declaration(token_list, &token_position, ast[num_of_stmt]));
@@ -940,6 +911,7 @@ extern AST **parser(Token *token_list, size_t *statement_number)
         }
         printf("Number of statements parsed: %d\n\n", num_of_stmt);
     } while(!next_position(&token_position, token_list));
+
     *statement_number = num_of_stmt;
     return ast;
 }
