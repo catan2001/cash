@@ -102,9 +102,13 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Added For loops statements
 - [x] Fixed For loops and while loop ast_free and ast_print
 
+### 5.3.2025.
+- [x] Fixed deallocation!
+- [x] Refactored code
+- [x] Fixed New Line in print stmt
+
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
-- [ ] Deallocate whole memory!
 - [ ] Fix Panic mode!
 - [ ] Implement break and continue
 - [ ] Bug when freeing memory for unused characters
