@@ -143,6 +143,16 @@ extern void ast_print(AST *ast)
             ast_print(ast->data.AST_BINARY_EXPR.right);
             break;
         }
+        case AST_CALL_EXPR:
+        {
+            fprintf(stdout, "Call Expr node: \n");
+            ast_print(ast->data.AST_CALL_EXPR.callee);
+            for(size_t i = 0; i < ast->data.AST_CALL_EXPR.stmt_num; ++i) {
+                fprintf(stdout, "Argument %d:\n", i);
+                ast_print(ast->data.AST_CALL_EXPR.stmt_list[i]);
+            }
+            break;
+        } 
         case AST_UNARY_EXPR:
         {
             fprintf(stdout, "Unary Node: %s\n", ast->data.AST_UNARY_EXPR.token->lexeme);
@@ -231,6 +241,16 @@ extern void ast_free(AST *ast)
         {
             ast_free(ast->data.AST_BINARY_EXPR.left);
             ast_free(ast->data.AST_BINARY_EXPR.right);
+            break;
+        }
+        case AST_CALL_EXPR:
+        {
+            for(size_t i = 0; i < ast->data.AST_CALL_EXPR.stmt_num; ++i)
+                ast_free(ast->data.AST_CALL_EXPR.stmt_list[i]);
+            if(ast->data.AST_CALL_EXPR.stmt_list != NULL) {
+                free(ast->data.AST_CALL_EXPR.stmt_list);
+            }
+            ast_free(ast->data.AST_CALL_EXPR.callee);
             break;
         }
         case AST_UNARY_EXPR: 
@@ -338,6 +358,47 @@ static AST *primary(Token *token_list, size_t *token_position, AST *ast)
     return NULL;
 }
 
+static AST *call(Token *token_list, size_t *token_position, AST *ast)
+{   
+    ast = primary(token_list, token_position, ast);
+
+    if(token_list[*token_position].type == LEFT_PARENTHESIS) {
+        if(next_position(token_position, token_list)) {TODO("Add error later");}
+        AST **args = NULL;
+        AST *expr = NULL;
+        Token *paren = NULL;
+        size_t stmt_num = 0;
+
+        if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
+            do {
+                args = realloc(args, sizeof(AST *) * (stmt_num + 1));
+                args[stmt_num++] = expression(token_list, token_position, expr);
+                if(stmt_num >= MAX_ARG_CNT) {TODO("Add error later!");}
+            } while(token_list[*token_position].type == COMMA && !next_position(token_position, token_list));
+            
+            if(token_list[*token_position].type != RIGHT_PARENTHESIS) {TODO("Add error");}
+            paren = &token_list[*token_position];
+        }
+        
+        if(next_position(token_position, token_list)) {TODO("Add error later");}
+
+        ast = ast_new((AST)
+            {
+                .tag = AST_CALL_EXPR,
+                .data.AST_CALL_EXPR = {
+                    ast,
+                    paren,
+                    args,
+                    stmt_num
+                }
+            }
+        );
+    }
+
+    return ast;
+}
+
+
 static AST *unary(Token *token_list, size_t *token_position, AST *ast) 
 {
     if(token_list[*token_position].type == SUBTRACT    ||
@@ -362,7 +423,7 @@ static AST *unary(Token *token_list, size_t *token_position, AST *ast)
         );
         return ast;
     }
-    return primary(token_list, token_position, ast);
+    return call(token_list, token_position, ast);
 }
 
 static AST *factor(Token *token_list, size_t *token_position, AST *ast) 

@@ -49,6 +49,10 @@ static AST *primary(Token *, size_t *, AST *);
 *Function that implements UNRY rule of grammar */
 static AST *unary(Token *, size_t *, AST *);
 
+/*@Function: call
+*Function that implements CALL rule of grammar */
+static AST *call(Token *, size_t *, AST *);
+
 /*@Function: factor
 *Function that implements FACT rule of grammar */
 static AST *factor(Token *, size_t *, AST *);

@@ -26,9 +26,10 @@ SOFTWARE.
 
 #define TRUE 1
 #define FALSE 0
-
 #define MAX_LINE_SIZE 1000
 #define FILE_PATH_SIZE 100
+#define MAX_ARG_CNT 127
+
 
 // TsodingDaily <3
 #define TODO(msg) do {                                                  \
@@ -306,7 +307,7 @@ struct AST
         AST_EXPR_STMT,
         AST_BLOCK_STMT,
         AST_IF_STMT,
-	AST_WHILE_STMT,
+    	AST_WHILE_STMT,
         AST_FOR_STMT,
         AST_PRINT_STMT,
 
@@ -314,6 +315,7 @@ struct AST
         AST_LOGICAL_EXPR,
         AST_BINARY_EXPR,
         AST_GROUPING_EXPR,
+        AST_CALL_EXPR,
         AST_UNARY_EXPR
     } tag;
     union 
@@ -330,6 +332,7 @@ struct AST
         struct AST_LOGICAL_EXPR {AST *left; Token *token; AST *right;} AST_LOGICAL_EXPR;
         struct AST_BINARY_EXPR {AST *left; Token *token; AST *right;} AST_BINARY_EXPR;
         struct AST_GROUPING_EXPR {AST *left; Token *token;} AST_GROUPING_EXPR;
+        struct AST_CALL_EXPR {AST *callee; Token *paren; AST **stmt_list; size_t stmt_num;} AST_CALL_EXPR;
         struct AST_UNARY_EXPR {AST *right; Token *token;} AST_UNARY_EXPR;
     } data;
 };  

@@ -172,6 +172,23 @@ static ValueTagged *evaluate_unary_expression(AST *node, EnvironmentMap *env_hos
     abort();
 }
 
+static ValueTagged *evaluate_call_expression(AST *node, EnvironmentMap *env_host)
+{
+    ValueTagged *callee = evaluate(node, env_host);
+    ValueTagged **args = malloc(sizeof(ValueTagged *) * node->data.AST_CALL_EXPR.stmt_num);
+
+    for(size_t i = 0; i < node->data.AST_CALL_EXPR.stmt_num; ++i) {
+        args[i] = evaluate(node->data.AST_CALL_EXPR.stmt_list[i], env_host);
+    }
+
+    TODO("Finish call, add callable in Environment!");
+    /*
+     *  function = calle;
+     *  return call(function, args);
+     */
+}
+
+
 static ValueTagged *evaluate_binary_expression(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *left = evaluate(node->data.AST_BINARY_EXPR.left, env_host);
@@ -381,6 +398,8 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return identifier_value(node, env_host);    
     case AST_UNARY_EXPR:
         return evaluate_unary_expression(node, env_host);
+    case AST_CALL_EXPR:
+        return evaluate_call_expression(node, env_host);
     case AST_BINARY_EXPR:
         return evaluate_binary_expression(node, env_host);
     case AST_GROUPING_EXPR:
