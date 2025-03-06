@@ -107,6 +107,9 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Refactored code
 - [x] Fixed New Line in print stmt
 
+### 6.3.2025.
+- [x] Added call expression
+
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
@@ -123,6 +126,7 @@ Create syntax tree AST as output file and then execute the AST separately.
 - [ ] Graphically represent parsed ASTs.
 - [ ] Classes/Structures or Prototypes
 - [ ] Shift ASCII characters, example: a >> 1 -> b... 
+- [ ] Add an option for user to write a function in C and later incorporate them in cash. Basically implement foreign function interface
 ## Steps
 
 - [x] scanning the code from stdin
