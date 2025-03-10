@@ -89,6 +89,10 @@ static AST *expression(Token *, size_t *, AST *);
 *Function that implements VAR-DECL statement rule of grammar*/
 static AST *variable_declaration(Token *, size_t *, AST *);
 
+/*@Function: funct_declaration
+ * Function that implements FUNCT_DECL statement rule of grammar */
+static AST *funct_declaration(Token *, size_t *, AST *);
+
 /*@Function: expression_statement
 *Function that implements EXPR-STMT statement rule of grammar */
 static AST *expression_statement(Token *, size_t *, AST *);

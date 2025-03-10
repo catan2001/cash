@@ -29,6 +29,7 @@ SOFTWARE.
 #include "coretypes.h"
 #include "error.h"
 #include "environment.h"
+#include "function.h"
 #include "interpreter.h"
 
 static jmp_buf sync_env;
@@ -70,6 +71,31 @@ static void free_value(ValueTagged *value)
         free(value->literal.char_value);
     }
     free(value);
+}
+
+extern void function_interpret(Token *callee, ValueTagged **args, const size_t arg_num, EnvironmentMap *env_parrent) 
+{
+    if(callee == NULL) INTERNAL_ERROR("Passed null callee argument");
+   
+    EnvironmentMap env_child = {NULL, env_parrent, 0} ;
+    Environment *function = env_get_function(callee, env_parrent);
+    AST **parameters = function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.parameters;
+    AST **stmt_list = function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.stmt_list;
+    size_t param_num = function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.param_num;
+    size_t stmt_num =  function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.stmt_num;
+    
+    if(arg_num != param_num) {fprintf(stderr, "Error when calling %s, number of arguments given %d but expected %d\n", callee->lexeme, arg_num, param_num);}
+
+    for(size_t i = 0; i < param_num; ++i) {
+        Token *name = parameters[i]->data.token;
+        env_define_var(name, args[i], &env_child);
+    }
+    
+    for(size_t i = 0; i < stmt_num; ++i) {
+        free_value(evaluate(stmt_list[i], &env_child));
+    }
+
+    env_reset(&env_child);
 }
 
 static ValueTagged *literal_value(AST *node) 
@@ -174,18 +200,21 @@ static ValueTagged *evaluate_unary_expression(AST *node, EnvironmentMap *env_hos
 
 static ValueTagged *evaluate_call_expression(AST *node, EnvironmentMap *env_host)
 {
-    ValueTagged *callee = evaluate(node, env_host);
+    Token *callee = node->data.AST_CALL_EXPR.callee->data.token;
     ValueTagged **args = malloc(sizeof(ValueTagged *) * node->data.AST_CALL_EXPR.stmt_num);
 
     for(size_t i = 0; i < node->data.AST_CALL_EXPR.stmt_num; ++i) {
         args[i] = evaluate(node->data.AST_CALL_EXPR.stmt_list[i], env_host);
     }
 
-    TODO("Finish call, add callable in Environment!");
-    /*
-     *  function = calle;
-     *  return call(function, args);
-     */
+    function_interpret(callee, args, node->data.AST_CALL_EXPR.stmt_num, env_host);
+
+    for(size_t i = 0; i < node->data.AST_CALL_EXPR.stmt_num; ++i) {
+        free_value(args[i]);
+    }
+    free(args);
+    
+    return NULL;
 }
 
 
@@ -358,6 +387,14 @@ static ValueTagged *evaluate_variable_statement(AST *node, EnvironmentMap *env_h
     return (free_value(value), NULL);
 }
 
+static ValueTagged *evaluate_function_declaration_statement(AST *node, EnvironmentMap *env_host)
+{
+    Token *name = node->data.AST_FUNCT_DECL_STMT.name;
+    AST *function_definition = node;
+    env_define_function(name, env_host, function_definition);
+    return NULL;
+}
+
 static ValueTagged * _printf(ValueTagged *result) 
 {   
     if(error_flag) return NULL;
@@ -424,6 +461,8 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return ((ValueTagged *)_printf(result));
     case AST_VAR_DECL_STMT:
         return evaluate_variable_statement(node, env_host);
+    case AST_FUNCT_DECL_STMT:
+        return evaluate_function_declaration_statement(node, env_host);
     default:
         break;
     }

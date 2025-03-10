@@ -65,6 +65,17 @@ extern void ast_print(AST *ast)
             ast_print(ast->data.AST_VAR_DECL_STMT.init);
             break;
         }
+        case AST_FUNCT_DECL_STMT:
+        {
+            fprintf(stdout, "Function Declaration Statement Node: %s\n", ast->data.AST_FUNCT_DECL_STMT.name->lexeme);
+            fprintf(stdout, "Function Declaration Statement parameters: \n");
+            for(size_t i = 0; i < ast->data.AST_FUNCT_DECL_STMT.param_num; ++i)
+                ast_print(ast->data.AST_FUNCT_DECL_STMT.parameters[i]);
+            fprintf(stdout, "Function Declaration Statement block: \n");
+            for(size_t i = 0; i < ast->data.AST_FUNCT_DECL_STMT.stmt_num; ++i)
+                ast_print(ast->data.AST_FUNCT_DECL_STMT.stmt_list[i]);
+            break;
+        }
         case AST_EXPR_STMT: 
         {
             fprintf(stdout, "Expression Statement Node.\n");
@@ -186,6 +197,18 @@ extern void ast_free(AST *ast)
         {
             if(ast->data.AST_VAR_DECL_STMT.init != NULL)
                 ast_free(ast->data.AST_VAR_DECL_STMT.init);
+            break;
+        }
+        case AST_FUNCT_DECL_STMT:
+        {
+            for(size_t i = 0; i < ast->data.AST_FUNCT_DECL_STMT.param_num; ++i)
+                ast_free(ast->data.AST_FUNCT_DECL_STMT.parameters[i]);
+            if(ast->data.AST_FUNCT_DECL_STMT.parameters != NULL)
+                free(ast->data.AST_FUNCT_DECL_STMT.parameters);
+            for(size_t i = 0; i < ast->data.AST_FUNCT_DECL_STMT.stmt_num; ++i)
+                ast_free(ast->data.AST_FUNCT_DECL_STMT.stmt_list[i]);
+            if(ast->data.AST_FUNCT_DECL_STMT.stmt_list != NULL)
+                free(ast->data.AST_FUNCT_DECL_STMT.stmt_list);
             break;
         }
         case AST_EXPR_STMT: 
@@ -394,10 +417,8 @@ static AST *call(Token *token_list, size_t *token_position, AST *ast)
             }
         );
     }
-
     return ast;
 }
-
 
 static AST *unary(Token *token_list, size_t *token_position, AST *ast) 
 {
@@ -638,7 +659,6 @@ static AST *expression_statement(Token *token_list, size_t *token_position, AST 
     ast = expression(token_list, token_position, ast);
     ast = ast_new((AST)
         {
-    
             .tag = AST_EXPR_STMT,
             .data.AST_EXPR_STMT = {
                 ast,
@@ -890,6 +910,76 @@ static AST *variable_declaration(Token *token_list, size_t *token_position, AST 
     return ast;
 }
 
+static AST *funct_declaration(Token *token_list, size_t *token_position, AST *ast)
+{
+    if(token_list[*token_position].type != IDENTIFIER) {
+        TODO("Handle the error!");
+    } 
+
+    size_t param_num = 0;
+    size_t stmt_num = 0;
+    AST **params = NULL;
+    AST **stmt_list = NULL;
+    Token *name = &token_list[*token_position];
+    
+    if(next_position(token_position, token_list) || token_list[*token_position].type != LEFT_PARENTHESIS) {
+        TODO("Handle the error!");
+    } 
+
+    if(next_position(token_position, token_list)) {
+        TODO("Handle the error!");
+    } 
+
+    if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
+        do {
+            params = realloc(params, sizeof(AST *) * (param_num + 1));
+            params[param_num++] = expression(token_list, token_position, ast);
+            if(param_num >= MAX_ARG_CNT) {TODO("Add error later!");}
+        } while(token_list[*token_position].type == COMMA && !next_position(token_position, token_list));
+        
+        if(token_list[*token_position].type != RIGHT_PARENTHESIS) {TODO("Add error");}
+    }
+
+    if(next_position(token_position, token_list) || token_list[*token_position].type != LEFT_BRACE) {
+        TODO("Handle the error!");
+    }
+
+    if(next_position(token_position, token_list)) {
+        TODO("Handle the error!");
+    } 
+
+    while(token_list[*token_position].type != RIGHT_BRACE && token_list[(*token_position) + 1].type != EOF_TOKEN) {
+        stmt_list = realloc(stmt_list, sizeof(AST *) * (stmt_num + 1));
+        stmt_list[stmt_num++] = declaration(token_list, token_position, ast);
+
+        if(next_position(token_position, token_list)) {
+            TODO("Fix panic mode!");
+            parser_error(token_list[*token_position], "Expected '}' after block statement.");
+            panic_mode(token_list, token_position);
+        }
+    } 
+    
+    if(token_list[*token_position].type != RIGHT_BRACE) {
+        parser_error(token_list[*token_position], "Expected '}' after block statement.");
+        panic_mode(token_list, token_position);
+    }
+   
+    ast = ast_new((AST)
+        {
+            .tag = AST_FUNCT_DECL_STMT,
+            .data.AST_FUNCT_DECL_STMT = {
+                name,
+                params,
+                stmt_list,
+                param_num,
+                stmt_num
+            }
+        }            
+    );
+
+    return ast;
+}
+
 static AST *statement(Token *token_list, size_t *token_position, AST *ast) 
 {
     /* print statement rule */
@@ -954,6 +1044,15 @@ static AST *declaration(Token *token_list, size_t *token_position, AST *ast)
         }
         return variable_declaration(token_list, token_position, ast);
     }
+    
+    if(token_list[*token_position].type == FUNCT) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected function identifier after funct.");
+            return ast;
+        }
+        return funct_declaration(token_list, token_position, ast);
+    }
+
     return statement(token_list, token_position, ast);
 }
 

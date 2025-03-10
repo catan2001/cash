@@ -245,11 +245,14 @@ typedef enum character_t
 /*@Type Value: Abstract the type for tokenizer, classifier and parser*/
 typedef union value_u
 {
-    long long int integer_value;    // 64
-    double float_value;             // 64
-    char *char_value;               // 64 
-    int boolean_value;              // 8
+    long long int integer_value;    
+    double float_value;             
+    char *char_value;                
+    int boolean_value;              
 } Value;
+
+/*@Type AST: Structure used for parsing AST tree */
+typedef struct AST AST; 
 
 /*@Type ValueTagged: Abstract type used by interpreter */
 typedef struct value_tag_s
@@ -259,7 +262,7 @@ typedef struct value_tag_s
 } ValueTagged;
 
 /*@Type Token: Used for tokenization*/
-typedef struct token_s
+typedef struct token_s  
 {
     TokenType type;
     char *lexeme;
@@ -270,7 +273,18 @@ typedef struct token_s
 /*@Type Environment: used for runtime environment */
 typedef struct environment_s
 {
-    ValueTagged value;
+    enum type
+    {
+        ENV_VARIABLE,
+        ENV_FUNCTION
+    } type;
+    
+    union 
+    {
+        ValueTagged value;
+        struct ENV_FUNCTION {AST *definition;} ENV_FUNCTION;
+    } data;
+
     char *name;
 } Environment;
 
@@ -292,9 +306,6 @@ typedef struct reserved_word_map_t
     TokenType type;
 } ReservedWordMapType;
 
-/*@Type AST: Structure used for parsing AST tree */
-typedef struct AST AST; 
-
 /*@Type AST: Structure, previously forward referenced */
 struct AST 
 {
@@ -302,7 +313,8 @@ struct AST
     {
         AST_LITERAL,
         AST_IDENTIFIER,
-
+    
+        AST_FUNCT_DECL_STMT,
         AST_VAR_DECL_STMT,
         AST_EXPR_STMT,
         AST_BLOCK_STMT,
@@ -322,6 +334,7 @@ struct AST
     {
         Token *token;
         struct AST_VAR_DECL_STMT {Token *name; AST *init;} AST_VAR_DECL_STMT;
+        struct AST_FUNCT_DECL_STMT {Token *name; AST **parameters; AST **stmt_list; size_t param_num; size_t stmt_num;} AST_FUNCT_DECL_STMT;
         struct AST_EXPR_STMT {AST *expr;} AST_EXPR_STMT;
         struct AST_BLOCK_STMT {AST **stmt_list; size_t stmt_num;} AST_BLOCK_STMT;
         struct AST_IF_STMT {AST *condition; AST *true_branch; AST *else_branch;} AST_IF_STMT;

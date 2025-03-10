@@ -40,6 +40,6 @@ int main(int argc, char **argv)
     /*Clear the terminal at start*/
     clear_terminal();
     cash(argc, argv);
-    
+       
     return 0;
 }

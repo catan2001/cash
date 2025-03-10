@@ -45,12 +45,20 @@ extern void env_reset(EnvironmentMap *);
 *Function that assignes some value to a variable in Environment */
 extern void env_assign_var(Token *, ValueTagged *, EnvironmentMap *);
 
-/*@Function: define_env_var
+/*@Function: env_define_var
 *Function that defines new variable Environment, reallocates size of Environment by one */
 extern void env_define_var(Token *, ValueTagged *, EnvironmentMap *);
 
-/*@Function: get_env_var
+/*@Function: env_get_var
 *Function that tries to find variable name in Environment map*/
 extern ValueTagged *env_get_var(Token *, EnvironmentMap *);
+
+/*@Function: env_define_function
+*Function that defines new Function definition in Environment map*/
+extern void env_define_function(Token *name, EnvironmentMap *env_map, AST *ast_definition);
+
+/*@Function: env_get_function
+*Function that tries to find a function name in Environment map*/
+extern Environment *env_get_function(Token *name, EnvironmentMap *env_map);
 
 #endif // ENVIRONMENT_H
