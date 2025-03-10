@@ -109,12 +109,20 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 
 ### 6.3.2025.
 - [x] Added call expression
+- [x] Interpreting call WIP
+
+### 9.3.2025;
+- [x] Parsed function definition
+- [x] Interpreted function definition
+- [x] Fixed interpreting a call
+- [x] Updated Environment
 
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
 - [ ] Implement break and continue
 - [ ] Bug when freeing memory for unused characters
+- [ ]
 - [ ] Add support for ternary ?: operators
 - [ ] Add support for comma Expressions
 - [ ] Create Coroutine for synchronization
