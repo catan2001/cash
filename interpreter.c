@@ -84,7 +84,10 @@ extern void function_interpret(Token *callee, ValueTagged **args, const size_t a
     size_t param_num = function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.param_num;
     size_t stmt_num =  function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.stmt_num;
     
-    if(arg_num != param_num) {fprintf(stderr, "Error when calling %s, number of arguments given %d but expected %d\n", callee->lexeme, arg_num, param_num);}
+    if(arg_num != param_num) {
+        fprintf(stderr, "Error when calling %s, number of arguments given %d but expected %d\n", callee->lexeme, arg_num, param_num);
+        runtime_error_mode();
+    }
 
     for(size_t i = 0; i < param_num; ++i) {
         Token *name = parameters[i]->data.token;
