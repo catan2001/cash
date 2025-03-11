@@ -33,30 +33,35 @@ The cash interpreting language supports a rich set of operators:
 ```BNF
 Rules:
 **********************************************
-<PROG>        ::=   <DECL-STMT>* <EOF>
-<DECL-STMT>   ::=   <VAR-DECL> | <STMT>
-<VAR-DECL>    ::=   "var" <ID> ("=" <EXPR>)? ";"
-<STMT>        ::=   <EXPR-STMT> | <PRINT-STMT> | <BLOCK-STMT> 
-                    | <IF-STMT>
-<EXPR-STMT>   ::=   <EXPR> ";"
-<PRINT-STMT>  ::=   "printf" <EXPR> ";"
-<BLOCK-STMT>  ::=   "{" <DECL-STMT>* "}"
-<IF-STMT>     ::=   "if" "(" <EXPR> ")" <STMT> ("else" <STMT>)?
-<EXPR>        ::=   <ASSIGN>
-<ASSIGN>      ::=   <ID> "=" <ASSIGN>
-                    | <LOR>
-<LOR>         ::=   <LAND> ( "||" <LAND>)*
-<LAND>        ::=   <EQL>  ( "&&" <EQL>)*
-<EQL>         ::=   <CMPR> (( "!=" | "==" ) <CMPR> )*
-<CMPR>        ::=   <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
-<TERM>        ::=   <FACT> (( "-" | "+" ) <FACT> )*
-<FACT>        ::=   <UNRY> (( "/" | "*") <UNRY> )*
-<UNRY>        ::=   ( "!" | "-" ) <UNRY>
-                    | <PRIM>
-<PRIM>        ::=   <NUM> | <STR> | "TRUE" | "FALSE" | "NULL"
-                    | "(" <EXPR> ")" 
-                    | <ID>
-<EOF>         ::= "end of file"
+<PROG>          ::=     <DECL-STMT>* <EOF>
+<DECL-STMT>     ::=     <FUNC-DECL> | <VAR-DECL> | <STMT>
+<FUNC-DECL>     ::=     "funct" <ID> "(" <PARAMS>? ")" <BLOCK-STMT>
+<VAR-DECL>      ::=     "var" <ID> ("=" <EXPR>)? ";"
+<STMT>          ::=     <EXPR-STMT> | <PRINT-STMT> | <BLOCK-STMT> 
+                        | <IF-STMT>
+<EXPR-STMT>     ::=     <EXPR> ";"
+<PRINT-STMT>    ::=     "printf" <EXPR> ";"
+<BLOCK-STMT>    ::=     "{" <DECL-STMT>* "}"
+<IF-STMT>       ::=     "if" "(" <EXPR> ")" <STMT> ("else" <STMT>)?
+
+<EXPR>          ::=     <ASSIGN>
+<ASSIGN>        ::=     <ID> "=" <ASSIGN>
+                        | <LOR>
+<LOR>           ::=     <LAND> ( "||" <LAND>)*
+<LAND>          ::=     <EQL>  ( "&&" <EQL>)*
+<EQL>           ::=     <CMPR> (( "!=" | "==" ) <CMPR> )*
+<CMPR>          ::=     <TERM> (( ">" | ">=" | "<" | "<=" ) <TERM> )*
+<TERM>          ::=     <FACT> (( "-" | "+" ) <FACT> )*
+<FACT>          ::=     <UNRY> (( "/" | "*") <UNRY> )*
+<UNRY>          ::=     ( "!" | "-" ) <UNRY>
+                        | <CALL>
+<CALL>          ::=     <PRIM> "(" <ARGS> ")"  
+<PRIM>          ::=     <NUM> | <STR> | "TRUE" | "FALSE" | "NULL"
+                        | "(" <EXPR> ")" 
+                        | <ID>
+<PARAMS>        ::=     <ID> ("," <ID>)*
+<ARGS>          ::=     <EXPR> ("," <EXPR>)*
+<EOF>           ::=     "end of file"
 
 
 Syntax:
@@ -66,22 +71,26 @@ Syntax:
 
 Scheme:
 **********************************************
-<PROG>        -> program;
-<DECL-STMT>   -> declaration statement;
-<VAR-DECL>    -> variable declaration statement;
-<STMT>        -> statement;
-<EXPR-STMT>   -> expression statement;
-<PRINT-STMT>  -> print statement;
-<BLOCK-STMT>  -> block statement;
-<IF-STMT>     -> if statement;
-<EXPR>        -> expression;
-<ASSIGN>      -> assignment-expression;
-<EQL>         -> equality;
-<CMPR>        -> comparison;
-<TERM>        -> term;
-<FACT>        -> factor;
-<UNRY>        -> unary;
-<PRIM>        -> primary;
-<ID>          -> identifier
+<PROG>          -> program;
+<DECL-STMT>     -> declaration statement;
+<FUNCT-DECL>    -> function declaration statement;
+<VAR-DECL>      -> variable declaration statement;
+<STMT>          -> statement;
+<EXPR-STMT>     -> expression statement;
+<PRINT-STMT>    -> print statement;
+<BLOCK-STMT>    -> block statement;
+<CALL>          -> call statement;
+<IF-STMT>       -> if statement;
+<EXPR>          -> expression;
+<ASSIGN>        -> assignment-expression;
+<EQL>           -> equality;
+<CMPR>          -> comparison;
+<TERM>          -> term;
+<FACT>          -> factor;
+<UNRY>          -> unary;
+<PRIM>          -> primary;
+<PARAMS>        -> parameters;
+<ARGS>          -> arguments; 
+<ID>            -> identifier;
 
 ``` 
