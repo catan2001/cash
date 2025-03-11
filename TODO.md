@@ -111,11 +111,17 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Added call expression
 - [x] Interpreting call WIP
 
-### 9.3.2025;
+### 9.3.2025.
 - [x] Parsed function definition
 - [x] Interpreted function definition
 - [x] Fixed interpreting a call
 - [x] Updated Environment
+
+### 11.3.2025.
+- [x] Fixed error in function call when wrong arity
+- [x] Fixed error in if else statement
+- [x] Changed Lexer and parsed return statement
+- [x] Interpreting return stmt is wip
 
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
@@ -128,6 +134,8 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [ ] Create Coroutine for synchronization
 - [ ] Encapsulate number abstract type for print
 - [ ] In future Add special NULL types.
+- [ ] Add native functions from stdlib, math, time, stdio
+
 ## Ideas
 - [ ] Instead of having lexer -> parser -> execution. 
 Create syntax tree AST as output file and then execute the AST separately. 
