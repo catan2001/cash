@@ -47,6 +47,7 @@ static const ReservedWordMapType reserved_word_map[] = {
     {"funct",   FUNCT},
     {"class",   CLASS},
     {"struct",  STRUCT},
+    {"return",  RETURN},
     {"eof",     EOF_TOKEN}
 };
 

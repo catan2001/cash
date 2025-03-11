@@ -113,6 +113,10 @@ static AST *while_statement(Token *, size_t *, AST *);
 *Function that implements PRINT-STMT statement rule of grammar */
 static AST *print_statement(Token *, size_t *, AST *);
 
+/*@Function: return_statement
+*Function that implements RET-STMT statement rule of grammar */
+static AST *return_statement(Token *, size_t *, AST *);
+
 /*@Function: statement
 *Function that implements STAT statement rule of grammar */
 static AST *statement(Token *, size_t *, AST *);

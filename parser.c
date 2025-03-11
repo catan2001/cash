@@ -141,6 +141,12 @@ extern void ast_print(AST *ast)
             ast_print(ast->data.AST_PRINT_STMT.expr);
             break;
         }
+        case AST_RETURN_STMT:
+        {
+            fprintf(stdout, "Return statement Node.\n");
+            ast_print(ast->data.AST_RETURN_STMT.expr);
+            break;
+        }
         case AST_ASSIGN_EXPR:
         {
             fprintf(stdout, "Assignment Expression Node: %s\n", ast->data.AST_ASSIGN_EXPR.token->lexeme);
@@ -255,6 +261,12 @@ extern void ast_free(AST *ast)
             ast_free(ast->data.AST_PRINT_STMT.expr);
             break;
         }
+        case AST_RETURN_STMT:
+        {
+            ast_free(ast->data.AST_RETURN_STMT.expr);
+            break;
+        }
+
         case AST_ASSIGN_EXPR:
         {
             ast_free(ast->data.AST_ASSIGN_EXPR.expr);
@@ -389,7 +401,6 @@ static AST *call(Token *token_list, size_t *token_position, AST *ast)
         if(next_position(token_position, token_list)) {TODO("Add error later");}
         AST **args = NULL;
         AST *expr = NULL;
-        Token *paren = NULL;
         size_t stmt_num = 0;
 
         if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
@@ -400,7 +411,6 @@ static AST *call(Token *token_list, size_t *token_position, AST *ast)
             } while(token_list[*token_position].type == COMMA && !next_position(token_position, token_list));
             
             if(token_list[*token_position].type != RIGHT_PARENTHESIS) {TODO("Add error");}
-            paren = &token_list[*token_position];
         }
         
         if(next_position(token_position, token_list)) {TODO("Add error later");}
@@ -410,7 +420,6 @@ static AST *call(Token *token_list, size_t *token_position, AST *ast)
                 .tag = AST_CALL_EXPR,
                 .data.AST_CALL_EXPR = {
                     ast,
-                    paren,
                     args,
                     stmt_num
                 }
@@ -745,8 +754,7 @@ static AST *if_statement(Token *token_list, size_t *token_position, AST *ast)
     next_position(token_position, token_list);
     AST *true_branch = statement(token_list, token_position, ast);
     AST *else_branch = NULL;
-
-    if(!next_position(token_position, token_list) && token_list[*token_position].type == ELSE) {
+    if(token_list[*token_position + 1].type == ELSE && !next_position(token_position, token_list)) {
         next_position(token_position, token_list);
         else_branch = statement(token_list, token_position, ast);
     }
@@ -875,6 +883,30 @@ static AST *for_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast; 
 }
 
+static AST *return_statement(Token *token_list, size_t *token_position, AST *ast) 
+{
+    AST *expr = NULL;
+    if(token_list[*token_position].type != SEMICOLON) {
+        expr = expression(token_list, token_position, ast);
+    }
+
+    if(token_list[*token_position].type != SEMICOLON) {
+        parser_error(token_list[*token_position], "Expected ; after return expression.");
+        return ast;
+    }
+
+     ast = ast_new((AST)
+            {
+                .tag = AST_RETURN_STMT,
+                .data.AST_RETURN_STMT = {
+                    expr
+                }
+            }            
+        );
+     
+     return ast;
+}
+
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
     if(token_list[*token_position].type != IDENTIFIER) {
@@ -951,7 +983,6 @@ static AST *funct_declaration(Token *token_list, size_t *token_position, AST *as
     while(token_list[*token_position].type != RIGHT_BRACE && token_list[(*token_position) + 1].type != EOF_TOKEN) {
         stmt_list = realloc(stmt_list, sizeof(AST *) * (stmt_num + 1));
         stmt_list[stmt_num++] = declaration(token_list, token_position, ast);
-
         if(next_position(token_position, token_list)) {
             TODO("Fix panic mode!");
             parser_error(token_list[*token_position], "Expected '}' after block statement.");
@@ -1023,6 +1054,14 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
             return ast;
         }
         return for_statement(token_list, token_position, ast);       
+    }
+    
+    if(token_list[*token_position].type == RETURN) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected expression or ';'  after return statement!");
+            return ast;
+        }
+        return return_statement(token_list, token_position, ast);       
     }
 
     /* Regular expression statement */

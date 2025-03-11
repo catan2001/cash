@@ -96,7 +96,9 @@ extern void run_file(char *file_name)
 
     for(char *line = file_read_line(file); line != NULL; line = (line_number++, file_read_line(file))) {
         if((tokens = tokenizer(pcmd, &number_of_tokens)) == NULL) continue;
+        if(error_flag) goto DEALLOCATE_TOKENS_LABEL;
         if((ctokens = token_classifier(tokens, ctokens, number_of_ctokens + number_of_tokens, &number_of_ctokens)) == NULL) TODO("Add error");
+        if(error_flag) goto DEALLOCATE_CTOKENS_LABEL;
         free(line);
     }
 
@@ -110,6 +112,7 @@ extern void run_file(char *file_name)
             ast_print(ast[i]);
             interpret(ast[i]);
         }
+        if(error_flag) break;
     }
     //Deallocate Heap memory 
     env_reset(&env_global);
@@ -132,6 +135,7 @@ extern void run_file(char *file_name)
         free(tokens[i]);
     }
     free(tokens);
+
     exit(EXIT_SUCCESS); 
 }
 
@@ -185,7 +189,6 @@ extern void run_term(void)
         }
         free(tokens);
         wait(NULL);
-        return;
     } 
 }
 

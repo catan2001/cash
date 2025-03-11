@@ -83,6 +83,7 @@ extern void env_reset(EnvironmentMap *env_map)
               if(env_map->env[i].data.value.type == STRING) free(env_map->env[i].data.value.literal.char_value);
               break;
           case ENV_FUNCTION:
+              // AST is later freed
               break;
           default:
               break;

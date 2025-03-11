@@ -38,6 +38,7 @@ static ValueTagged *evaluate(AST *, EnvironmentMap *);
 
 static void runtime_error_mode(void) 
 {
+    error_flag = TRUE;
     longjmp(sync_env, TRUE);
 }
 
@@ -322,11 +323,12 @@ static ValueTagged *evaluate_assign_expression(AST *node, EnvironmentMap *env_ho
 static ValueTagged *evaluate_if_statement(AST *node, EnvironmentMap *env_host) 
 {
     ValueTagged *condition = evaluate(node->data.AST_IF_STMT.condition, env_host);
-    if(is_truth(condition, condition->type).boolean_value)
-        free_value(evaluate(node->data.AST_IF_STMT.true_branch, env_host));
-    else
+
+    if(is_truth(condition, condition->type).boolean_value) 
+        free_value(evaluate(node->data.AST_IF_STMT.true_branch, env_host)); 
+    else if(node->data.AST_IF_STMT.else_branch != NULL) 
         free_value(evaluate(node->data.AST_IF_STMT.else_branch, env_host));
-    
+
     return (free_value(condition), NULL);
 }
 
@@ -466,6 +468,8 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return evaluate_variable_statement(node, env_host);
     case AST_FUNCT_DECL_STMT:
         return evaluate_function_declaration_statement(node, env_host);
+    case AST_RETURN_STMT:
+        TODO("Finish Interpreting the return statement!");
     default:
         break;
     }
@@ -475,10 +479,12 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
 
 extern void interpret(AST *expr) 
 {
-    if(setjmp(sync_env)) return;
-    else
+     ValueTagged *value = NULL;
+    if(setjmp(sync_env));
+    else {
         fprintf(stdout, "Setjmp for interpreter!\n");
-    ValueTagged *value = evaluate(expr, &env_global);
+        value = evaluate(expr, &env_global);
+    }
     free_value(value);
 }
 
