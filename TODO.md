@@ -123,6 +123,9 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Changed Lexer and parsed return statement
 - [x] Interpreting return stmt is wip
 
+### 12.3.2025.
+- [x] Interpreting return statement WIP
+
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
