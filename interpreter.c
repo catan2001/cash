@@ -100,7 +100,6 @@ extern ValueTagged *function_interpret(Token *callee, ValueTagged **args, const 
             free_value(evaluate(stmt_list[i], &env_child));
         }
     }
-    env_parrent->env_return = env_child.env_return;
     env_reset(&env_child);
     return env_parrent->env_return; 
 }
@@ -209,18 +208,42 @@ static ValueTagged *evaluate_call_expression(AST *node, EnvironmentMap *env_host
 {
     Token *callee = node->data.AST_CALL_EXPR.callee->data.token;
     ValueTagged **args = malloc(sizeof(ValueTagged *) * node->data.AST_CALL_EXPR.stmt_num);
+    ValueTagged *return_value = NULL;
     
     for(size_t i = 0; i < node->data.AST_CALL_EXPR.stmt_num; ++i) {
         args[i] = evaluate(node->data.AST_CALL_EXPR.stmt_list[i], env_host);
     }
 
-    ValueTagged *return_val = function_interpret(callee, args, node->data.AST_CALL_EXPR.stmt_num, env_host);
+    ValueTagged *tmp_return = function_interpret(callee, args, node->data.AST_CALL_EXPR.stmt_num, env_host);
+    if(tmp_return != NULL) {
+        return_value = malloc(sizeof(ValueTagged));
+        return_value->type = tmp_return->type;
+
+        switch (tmp_return->type) {
+            case NUMBER_INT:
+                return_value->literal.integer_value = tmp_return->literal.integer_value;
+                break;
+            case NUMBER_FLOAT:
+                return_value->literal.float_value = tmp_return->literal.float_value;
+                break;
+            case STRING:
+                return_value->literal.char_value = strdup(tmp_return->literal.char_value);
+                break;
+            case TRUE_TOKEN:
+            case FALSE_TOKEN:
+                return_value->literal.boolean_value = tmp_return->literal.boolean_value;
+                break;
+            default:
+                INTERNAL_ERROR("Could not copy a value!");
+        } 
+    }
 
     for(size_t i = 0; i < node->data.AST_CALL_EXPR.stmt_num; ++i) {
         free_value(args[i]);
     }
     free(args);
-    return return_val;
+    
+    return return_value;
 }
 
 
@@ -281,7 +304,6 @@ static ValueTagged *evaluate_binary_expression(AST *node, EnvironmentMap *env_ho
                     BINARY_ADD_SUB_MULTIPLY_OPERATION(+, left, right, result);
                 else
                     break;
-
                 return (free_value(left), free_value(right), result);
             }
             default:
@@ -406,10 +428,10 @@ static ValueTagged *evaluate_return_statement(AST *node, EnvironmentMap *env_hos
 {
     if(env_host->env_enclosing == NULL) { TODO("Fix so it works in other statemetnts"); runtime_error(node, "Can't return from global"); }
     if(node->data.AST_RETURN_STMT.expr == NULL) 
-        env_host->env_return = NULL;
+        env_host->env_enclosing->env_return = NULL;
     else
-        env_host->env_return = evaluate(node->data.AST_RETURN_STMT.expr, env_host);
-    longjmp(*((jmp_buf *)env_host->env_jmp_mark), TRUE);
+        env_host->env_enclosing->env_return = evaluate(node->data.AST_RETURN_STMT.expr, env_host->env_enclosing);
+    longjmp(env_host->env_jmp_mark, TRUE);
 }
 
 static ValueTagged * _printf(ValueTagged *result) 
@@ -497,7 +519,6 @@ extern void interpret(AST *expr)
         fprintf(stdout, "Setjmp for interpreter!\n");
         value = evaluate(expr, &env_global);
     }
-    printf("testic\n");
     free_value(value);
 }
 
