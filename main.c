@@ -28,6 +28,7 @@ SOFTWARE.
 #include <string.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <setjmp.h>
 #include "coretypes.h"
 #include "error.h"
 #include "cash.h"

@@ -27,7 +27,7 @@ SOFTWARE.
 
 /*@Function: function_interpret
  * A function used to interpret a function definition of a function that was called from environment */
-extern void function_interpret(Token *, ValueTagged **, const size_t, EnvironmentMap *);
+extern ValueTagged *function_interpret(Token *, ValueTagged **, const size_t, EnvironmentMap *);
 
 #endif // FUNCTION_H
 

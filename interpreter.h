@@ -77,6 +77,10 @@ static ValueTagged *evaluate_while_statement(AST *, EnvironmentMap *);
 *Function that evaluates variable statement */
 static ValueTagged *evaluate_variable_statement(AST *, EnvironmentMap *); 
 
+/*@Function: evaluate_return_statemente
+*Function that eevaluate_return_statement */
+static ValueTagged *evaluate_return_statement(AST *, EnvironmentMap *);
+
 /*@Function: _printf
 *Function that evaluates result of AST printf */
 static ValueTagged * _printf(ValueTagged *);

@@ -25,6 +25,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <setjmp.h>
 #include "coretypes.h"
 #include "error.h"
 #include "environment.h"
@@ -90,6 +91,10 @@ extern void env_reset(EnvironmentMap *env_map)
       }
     }
     if(env_map->env != NULL) free(env_map->env);
+    if(env_map->env_return != NULL) {
+        if(env_map->env_return->type == STRING) free(env_map->env_return->literal.char_value);
+        free(env_map->env_return);
+    } 
     env_map->env_size = 0;
 }
 

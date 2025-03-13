@@ -297,6 +297,8 @@ struct EnvironmentMap
 {
     Environment *env;
     EnvironmentMap *env_enclosing;
+    ValueTagged *env_return;
+    jmp_buf env_jmp_mark;
     size_t env_size;
 };
 

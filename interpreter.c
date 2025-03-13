@@ -74,11 +74,11 @@ static void free_value(ValueTagged *value)
     free(value);
 }
 
-extern void function_interpret(Token *callee, ValueTagged **args, const size_t arg_num, EnvironmentMap *env_parrent) 
+extern ValueTagged *function_interpret(Token *callee, ValueTagged **args, const size_t arg_num, EnvironmentMap *env_parrent) 
 {
     if(callee == NULL) INTERNAL_ERROR("Passed null callee argument");
    
-    EnvironmentMap env_child = {NULL, env_parrent, 0} ;
+    EnvironmentMap env_child = {NULL, env_parrent, NULL, 0, 0} ;
     Environment *function = env_get_function(callee, env_parrent);
     AST **parameters = function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.parameters;
     AST **stmt_list = function->data.ENV_FUNCTION.definition->data.AST_FUNCT_DECL_STMT.stmt_list;
@@ -95,11 +95,14 @@ extern void function_interpret(Token *callee, ValueTagged **args, const size_t a
         env_define_var(name, args[i], &env_child);
     }
     
-    for(size_t i = 0; i < stmt_num; ++i) {
-        free_value(evaluate(stmt_list[i], &env_child));
+    if(!setjmp(*((jmp_buf *)env_child.env_jmp_mark))) {
+        for(size_t i = 0; i < stmt_num; ++i) {
+            free_value(evaluate(stmt_list[i], &env_child));
+        }
     }
-
+    env_parrent->env_return = env_child.env_return;
     env_reset(&env_child);
+    return env_parrent->env_return; 
 }
 
 static ValueTagged *literal_value(AST *node) 
@@ -206,19 +209,18 @@ static ValueTagged *evaluate_call_expression(AST *node, EnvironmentMap *env_host
 {
     Token *callee = node->data.AST_CALL_EXPR.callee->data.token;
     ValueTagged **args = malloc(sizeof(ValueTagged *) * node->data.AST_CALL_EXPR.stmt_num);
-
+    
     for(size_t i = 0; i < node->data.AST_CALL_EXPR.stmt_num; ++i) {
         args[i] = evaluate(node->data.AST_CALL_EXPR.stmt_list[i], env_host);
     }
 
-    function_interpret(callee, args, node->data.AST_CALL_EXPR.stmt_num, env_host);
+    ValueTagged *return_val = function_interpret(callee, args, node->data.AST_CALL_EXPR.stmt_num, env_host);
 
     for(size_t i = 0; i < node->data.AST_CALL_EXPR.stmt_num; ++i) {
         free_value(args[i]);
     }
     free(args);
-    
-    return NULL;
+    return return_val;
 }
 
 
@@ -348,7 +350,7 @@ static ValueTagged *evaluate_for_statement(AST *node, EnvironmentMap *env_host)
     AST *init_node = node->data.AST_FOR_STMT.initializer;
     AST *cond_node = node->data.AST_FOR_STMT.condition;
 
-    EnvironmentMap env_child = {NULL, env_host, 0};
+    EnvironmentMap env_child = {NULL, env_host, 0, 0};
     ValueTagged *initializer = (init_node == NULL) ? NULL : evaluate(init_node, &env_child);
     ValueTagged *condition = (cond_node == NULL) ? NULL : evaluate(cond_node, &env_child);
     ValueTagged *increment = NULL;
@@ -398,6 +400,16 @@ static ValueTagged *evaluate_function_declaration_statement(AST *node, Environme
     AST *function_definition = node;
     env_define_function(name, env_host, function_definition);
     return NULL;
+}
+
+static ValueTagged *evaluate_return_statement(AST *node, EnvironmentMap *env_host)
+{
+    if(env_host->env_enclosing == NULL) { TODO("Fix so it works in other statemetnts"); runtime_error(node, "Can't return from global"); }
+    if(node->data.AST_RETURN_STMT.expr == NULL) 
+        env_host->env_return = NULL;
+    else
+        env_host->env_return = evaluate(node->data.AST_RETURN_STMT.expr, env_host);
+    longjmp(*((jmp_buf *)env_host->env_jmp_mark), TRUE);
 }
 
 static ValueTagged * _printf(ValueTagged *result) 
@@ -453,7 +465,7 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
     case AST_EXPR_STMT:
         return evaluate(node->data.AST_EXPR_STMT.expr, env_host);
     case AST_BLOCK_STMT:
-        EnvironmentMap env_child = {NULL, NULL, 0};
+        EnvironmentMap env_child = {NULL, NULL, NULL, 0, 0};
         return evaluate_block_statement(node, env_host, &env_child);
     case AST_IF_STMT:
         return evaluate_if_statement(node, env_host);
@@ -469,7 +481,7 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
     case AST_FUNCT_DECL_STMT:
         return evaluate_function_declaration_statement(node, env_host);
     case AST_RETURN_STMT:
-        TODO("Finish Interpreting the return statement!");
+        return evaluate_return_statement(node, env_host);
     default:
         break;
     }
@@ -479,12 +491,13 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
 
 extern void interpret(AST *expr) 
 {
-     ValueTagged *value = NULL;
+    ValueTagged *value = NULL;
     if(setjmp(sync_env));
     else {
         fprintf(stdout, "Setjmp for interpreter!\n");
         value = evaluate(expr, &env_global);
     }
+    printf("testic\n");
     free_value(value);
 }
 
