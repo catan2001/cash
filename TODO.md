@@ -126,6 +126,9 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 ### 12.3.2025.
 - [x] Interpreting return statement WIP
 
+### 13.3.2025.
+- [x] Fixed Interpreting return statement.
+
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
