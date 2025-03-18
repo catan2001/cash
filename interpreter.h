@@ -78,8 +78,16 @@ static ValueTagged *evaluate_while_statement(AST *, EnvironmentMap *);
 static ValueTagged *evaluate_variable_statement(AST *, EnvironmentMap *); 
 
 /*@Function: evaluate_return_statemente
-*Function that eevaluate_return_statement */
+*Function that evaluates return statement */
 static ValueTagged *evaluate_return_statement(AST *, EnvironmentMap *);
+
+/*@Function: evaluate_time_statement
+*Function that evaluates time statement*/
+static ValueTagged *evaluate_time_statement(AST *, EnvironmentMap *); 
+
+/*@Function: evaluate_clear_statement
+*Function that evaluates clear statement*/
+static ValueTagged *evaluate_clear_statement(AST *, EnvironmentMap *); 
 
 /*@Function: _printf
 *Function that evaluates result of AST printf */
@@ -92,5 +100,9 @@ static ValueTagged *evaluate(AST *, EnvironmentMap *);
 /*@Function: interpret
 *Function that interprets expressions*/
 extern void interpret(AST *);
+
+/*@Global Variable: cwd
+ * Variable used for specifying current working directory*/
+extern char cwd[FILE_PATH_SIZE];
 
 #endif // INTERPRETER_H

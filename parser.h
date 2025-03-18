@@ -117,6 +117,14 @@ static AST *print_statement(Token *, size_t *, AST *);
 *Function that implements RET-STMT statement rule of grammar */
 static AST *return_statement(Token *, size_t *, AST *);
 
+/*@Function: clear_statement
+*Function that implements CLR-STMT statement rule of grammar */
+static AST *clear_statement(Token *, size_t *, AST *);
+
+/*@Function: time_statement 
+*Function that implements TIME-STMT statement rule of grammar */
+static AST *time_statement(Token *, size_t *, AST *);
+
 /*@Function: statement
 *Function that implements STAT statement rule of grammar */
 static AST *statement(Token *, size_t *, AST *);

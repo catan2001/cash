@@ -35,6 +35,7 @@ static const ReservedWordMapType reserved_word_map[] = {
     {"pwd",     PWD},
     {"exec",    EXEC},
     {"clear",   CLEAR},
+    {"time",    TIME},
     {"if",      IF},
     {"else",    ELSE},
     {"false",   FALSE_TOKEN},

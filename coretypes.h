@@ -326,6 +326,8 @@ struct AST
         AST_FOR_STMT,
         AST_PRINT_STMT,
         AST_RETURN_STMT,
+        AST_TIME_STMT,
+        AST_CLEAR_STMT,
 
         AST_ASSIGN_EXPR,
         AST_LOGICAL_EXPR,

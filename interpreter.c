@@ -26,6 +26,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <setjmp.h>
 #include <string.h>
+#include <time.h>
 #include "coretypes.h"
 #include "error.h"
 #include "environment.h"
@@ -35,6 +36,8 @@ SOFTWARE.
 static jmp_buf sync_env;
 
 static ValueTagged *evaluate(AST *, EnvironmentMap *);
+
+char cwd[FILE_PATH_SIZE];
 
 static void runtime_error_mode(void) 
 {
@@ -434,6 +437,27 @@ static ValueTagged *evaluate_return_statement(AST *node, EnvironmentMap *env_hos
     longjmp(env_host->env_jmp_mark, TRUE);
 }
 
+static ValueTagged *evaluate_time_statement(AST *node, EnvironmentMap *env_host) 
+{   
+    time_t rt;
+    struct tm *time_info;
+
+    time(&rt);
+    time_info = localtime(&rt);
+
+    fprintf(stdout, "Current Time is: \n");
+    fprintf(stdout, "%s", asctime(time_info));
+
+    return NULL;
+}
+
+static ValueTagged *evaluate_clear_statement(AST *node, EnvironmentMap *env_host)
+{
+    fprintf(stdout, "\033[H\033[J");
+    fflush(stdout);
+    return NULL;
+}
+
 static ValueTagged * _printf(ValueTagged *result) 
 {   
     if(error_flag) return NULL;
@@ -504,6 +528,10 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return evaluate_function_declaration_statement(node, env_host);
     case AST_RETURN_STMT:
         return evaluate_return_statement(node, env_host);
+    case AST_TIME_STMT:
+        return evaluate_time_statement(node, env_host);
+    case AST_CLEAR_STMT:
+        return evaluate_clear_statement(node, env_host);
     default:
         break;
     }

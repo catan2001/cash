@@ -147,6 +147,16 @@ extern void ast_print(AST *ast)
             ast_print(ast->data.AST_RETURN_STMT.expr);
             break;
         }
+        case AST_TIME_STMT:
+        {
+            fprintf(stdout, "Time statement Node.\n");
+            break;
+        }
+        case AST_CLEAR_STMT:
+        {
+            fprintf(stdout, "Clear statement Node.\n");
+            break;
+        }
         case AST_ASSIGN_EXPR:
         {
             fprintf(stdout, "Assignment Expression Node: %s\n", ast->data.AST_ASSIGN_EXPR.token->lexeme);
@@ -266,7 +276,8 @@ extern void ast_free(AST *ast)
             ast_free(ast->data.AST_RETURN_STMT.expr);
             break;
         }
-
+        /* AST_TIME_STMT is default deallocation */
+        /* AST_CLEAR_STMT is default deallocation */
         case AST_ASSIGN_EXPR:
         {
             ast_free(ast->data.AST_ASSIGN_EXPR.expr);
@@ -320,6 +331,7 @@ static void synchronize(Token *token_list, size_t *token_position)
             case EXEC:
             case PWD:
             case TIME:
+            case CLEAR:
                 return;
         } 
     }
@@ -906,6 +918,41 @@ static AST *return_statement(Token *token_list, size_t *token_position, AST *ast
      
      return ast;
 }
+ 
+static AST *time_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    ast = ast_new((AST) 
+        {
+            .tag = AST_TIME_STMT,
+            .data.token = NULL
+        }
+    );
+
+    if(token_list[*token_position].type != SEMICOLON) {
+        fprintf(stderr, "Expected ';' at the end of time statment.\n");
+        set_error_flag();
+        panic_mode(token_list, token_position);
+    }       
+    return ast;
+}
+
+static AST *clear_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    ast = ast_new((AST) 
+        {
+            .tag = AST_CLEAR_STMT,
+            .data.token = NULL
+        }
+    );
+
+    if(token_list[*token_position].type != SEMICOLON) {
+        fprintf(stderr, "Expected ';' at the end of clear statment.\n");
+        set_error_flag();
+        panic_mode(token_list, token_position);
+    }       
+    return ast;
+}
+
 
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
@@ -1055,13 +1102,30 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
         }
         return for_statement(token_list, token_position, ast);       
     }
-    
+    /* return statement rule */
     if(token_list[*token_position].type == RETURN) {
         if(next_position(token_position, token_list)) {
             parser_error(token_list[*token_position], "Expected expression or ';'  after return statement!");
             return ast;
         }
         return return_statement(token_list, token_position, ast);       
+    }
+    /* time statement rule */
+    if(token_list[*token_position].type == TIME) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected ';'  after time statement!");
+            return ast;
+        }
+        return time_statement(token_list, token_position, ast);       
+    }
+
+    /* clear statement rule */
+    if(token_list[*token_position].type == CLEAR) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected ';'  after clear statement!");
+            return ast;
+        }
+        return clear_statement(token_list, token_position, ast);       
     }
 
     /* Regular expression statement */
@@ -1110,7 +1174,7 @@ extern AST **parser(Token *token_list, size_t *statement_number)
         }
         printf("Number of statements parsed: %d\n\n", num_of_stmt);
     } while(!next_position(&token_position, token_list));
-
+    
     *statement_number = num_of_stmt;
     return ast;
 }
