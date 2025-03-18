@@ -129,6 +129,10 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 ### 13.3.2025.
 - [x] Fixed Interpreting return statement.
 
+### 18.3.2025.
+- [x] Added time command
+- [x] Added clear command
+
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
