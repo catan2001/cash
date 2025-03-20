@@ -133,12 +133,18 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Added time command
 - [x] Added clear command
 
+### 20.3.2025.
+- [x] Added cd command
+- [ ] run command work in progress
+
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
 - [ ] Implement break and continue
 - [ ] Bug when freeing memory for unused characters
-- [ ]
+- [ ] Add later an option for searching and running an identifier from $PATH variable
+- [ ] When you implement the option for running an executable you can add & for running in the background
+- [ ] If we are running a cash script the kernel looks for a shebang #! /bin/sh to execute the script 
 - [ ] Add support for ternary ?: operators
 - [ ] Add support for comma Expressions
 - [ ] Create Coroutine for synchronization
