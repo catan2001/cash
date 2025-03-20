@@ -37,10 +37,10 @@ Rules:
 <DECL-STMT>     ::=     <FUNC-DECL> | <VAR-DECL> | <STMT>
 <FUNC-DECL>     ::=     "funct" <ID> "(" <PARAMS>? ")" <BLOCK-STMT>
 <VAR-DECL>      ::=     "var" <ID> ("=" <EXPR>)? ";"
-<STMT>          ::=     <EXPR-STMT> | <PRINT-STMT> | <BLOCK-STMT> 
+<STMT>          ::=     <EXPR-STMT> | <ECHO-STMT> | <BLOCK-STMT> 
                         | <IF-STMT>
 <EXPR-STMT>     ::=     <EXPR> ";"
-<PRINT-STMT>    ::=     "printf" <EXPR> ";"
+<ECHO-STMT>    ::=      "echo" <EXPR> ";"
 <BLOCK-STMT>    ::=     "{" <DECL-STMT>* "}"
 <IF-STMT>       ::=     "if" "(" <EXPR> ")" <STMT> ("else" <STMT>)?
 
@@ -77,7 +77,7 @@ Scheme:
 <VAR-DECL>      -> variable declaration statement;
 <STMT>          -> statement;
 <EXPR-STMT>     -> expression statement;
-<PRINT-STMT>    -> print statement;
+<ECHO-STMT>     -> echo statement;
 <BLOCK-STMT>    -> block statement;
 <CALL>          -> call statement;
 <IF-STMT>       -> if statement;
