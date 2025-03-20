@@ -68,7 +68,7 @@ extern int print_term(char *msg)
 extern void read_cmd(char *pcmd, const int lcmd) 
 {
     if (isatty(fileno(stdin))) {
-        fprintf(stdout, "\033[;32;1mcash:\033[34m%s\033[0m$ ", cwd);
+        fprintf(stdout, "\033[;32;1m%s@cash:\033[34m%s\033[0m$ ", getenv("USER"), cwd);
     }
     else
         return;
@@ -196,8 +196,6 @@ extern void cash(int argc,char **argv)
 {
     reset_error_flag();
     
-    /* Change the working directory to home and copy the path to cwd */
-    chdir("/home");
     getcwd(cwd, FILE_PATH_SIZE); 
 
     if(argc > 2) {fprintf(stderr, "Can't interpret multiple files at once!"); exit(EXIT_FAILURE);}

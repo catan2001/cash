@@ -177,7 +177,7 @@ More formally, many parser generators use the concept of the FOLLOW set of a non
 
 To execute parsed AST, it's necessary to evaluate each node in the tree. We can do it yet again using recursion and checking each node. Doing this will enable us to intrepret each node and continue to it's parent node. 
 
-- Read about REPL.
+- Read about REPL later.
 
 ### [Statements and State](#statements-and-state-side-effect)
 

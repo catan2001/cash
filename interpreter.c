@@ -24,6 +24,7 @@ SOFTWARE.
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <setjmp.h>
 #include <string.h>
 #include <time.h>
@@ -458,7 +459,19 @@ static ValueTagged *evaluate_clear_statement(AST *node, EnvironmentMap *env_host
     return NULL;
 }
 
-static ValueTagged * _printf(ValueTagged *result) 
+static ValueTagged *evaluate_cd_statement(AST *node, EnvironmentMap *env_host)
+{
+    if(node->data.AST_CD_STMT.expr == NULL) {
+        chdir(getenv("HOME"));
+        getcwd(cwd, FILE_PATH_SIZE);
+        return NULL;
+    } 
+    chdir(node->data.AST_CD_STMT.expr->data.token->lexeme);
+    getcwd(cwd, FILE_PATH_SIZE);
+    return NULL;
+}
+
+static ValueTagged *echo(ValueTagged *result) 
 {   
     if(error_flag) return NULL;
     switch (result->type) {
@@ -483,7 +496,7 @@ static ValueTagged * _printf(ValueTagged *result)
             fprintf(stdout, "%d", result->literal.boolean_value);
             break;
        default:
-            error("Tried to print undefined undefined ValueTagged value in eval_print", __FILE__, __LINE__);
+            error("Tried to echo undefined undefined ValueTagged value in eval_print", __FILE__, __LINE__);
             break;
     }
     return (free_value(result), NULL);
@@ -519,9 +532,9 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
     	return evaluate_while_statement(node, env_host);	
     case AST_FOR_STMT:
         return evaluate_for_statement(node, env_host);
-    case AST_PRINT_STMT:
-        ValueTagged *result = evaluate(node->data.AST_PRINT_STMT.expr, env_host);
-        return ((ValueTagged *)_printf(result));
+    case AST_ECHO_STMT:
+        ValueTagged *result = evaluate(node->data.AST_ECHO_STMT.expr, env_host);
+        return ((ValueTagged *) echo(result));
     case AST_VAR_DECL_STMT:
         return evaluate_variable_statement(node, env_host);
     case AST_FUNCT_DECL_STMT:
@@ -532,6 +545,8 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return evaluate_time_statement(node, env_host);
     case AST_CLEAR_STMT:
         return evaluate_clear_statement(node, env_host);
+    case AST_CD_STMT:
+        return evaluate_cd_statement(node, env_host);
     default:
         break;
     }

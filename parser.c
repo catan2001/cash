@@ -135,10 +135,10 @@ extern void ast_print(AST *ast)
             fprintf(stdout, "Body node ast:\n");
             ast_print(ast->data.AST_FOR_STMT.body);
         }
-        case AST_PRINT_STMT: 
+        case AST_ECHO_STMT: 
         {
-            fprintf(stdout, "Print statement Node.\n");
-            ast_print(ast->data.AST_PRINT_STMT.expr);
+            fprintf(stdout, "echo statement Node.\n");
+            ast_print(ast->data.AST_ECHO_STMT.expr);
             break;
         }
         case AST_RETURN_STMT:
@@ -155,6 +155,12 @@ extern void ast_print(AST *ast)
         case AST_CLEAR_STMT:
         {
             fprintf(stdout, "Clear statement Node.\n");
+            break;
+        }
+        case AST_CD_STMT: 
+        {
+            fprintf(stdout, "cd statement Node.\n");
+            ast_print(ast->data.AST_CD_STMT.expr);
             break;
         }
         case AST_ASSIGN_EXPR:
@@ -266,14 +272,20 @@ extern void ast_free(AST *ast)
             ast_free(ast->data.AST_FOR_STMT.body);
             break;
         } 
-        case AST_PRINT_STMT: 
+        case AST_ECHO_STMT: 
         {
-            ast_free(ast->data.AST_PRINT_STMT.expr);
+            ast_free(ast->data.AST_ECHO_STMT.expr);
             break;
         }
         case AST_RETURN_STMT:
         {
             ast_free(ast->data.AST_RETURN_STMT.expr);
+            break;
+        }
+        case AST_CD_STMT: 
+        {
+            if(ast->data.AST_CD_STMT.expr != NULL)
+                ast_free(ast->data.AST_CD_STMT.expr);
             break;
         }
         /* AST_TIME_STMT is default deallocation */
@@ -327,9 +339,9 @@ static void synchronize(Token *token_list, size_t *token_position)
             case FOR:
             case IF:
             case WHILE:
-            case PRINTF:
+            case ECHO:
             case EXEC:
-            case PWD:
+            case CD:
             case TIME:
             case CLEAR:
                 return;
@@ -695,20 +707,20 @@ static AST *expression_statement(Token *token_list, size_t *token_position, AST 
     return ast;
 }
 
-static AST *print_statement(Token *token_list, size_t *token_position, AST *ast) 
+static AST *echo_statement(Token *token_list, size_t *token_position, AST *ast) 
 {
     ast = expression(token_list, token_position, ast);
     ast = ast_new((AST)
         {
-            .tag = AST_PRINT_STMT,
-            .data.AST_PRINT_STMT = {
+            .tag = AST_ECHO_STMT,
+            .data.AST_ECHO_STMT = {
                 ast,
             }
         }            
     );
 
     if(token_list[*token_position].type != SEMICOLON) {
-        fprintf(stderr, "Expected ';' at the end of the print expression.\n");
+        fprintf(stderr, "Expected ';' at the end of the echo expression.\n");
         set_error_flag();
         panic_mode(token_list, token_position);
     }
@@ -953,6 +965,33 @@ static AST *clear_statement(Token *token_list, size_t *token_position, AST *ast)
     return ast;
 }
 
+static AST *cd_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    if(token_list[*token_position].type != SEMICOLON) 
+        ast = expression(token_list, token_position, ast);
+    if(ast != NULL && ast->tag != AST_LITERAL) {
+        fprintf(stderr, "Expected \"path\" after cd statement.\n");
+        set_error_flag();
+        panic_mode(token_list, token_position);
+    }       
+ 
+    ast = ast_new((AST)
+        {
+            .tag = AST_CD_STMT,
+            .data.AST_CD_STMT = {
+                ast,
+            }
+        }            
+    );
+
+    if(token_list[*token_position].type != SEMICOLON) {
+        fprintf(stderr, "Expected ';' at the end of the echo expression.\n");
+        set_error_flag();
+        panic_mode(token_list, token_position);
+    }
+    return ast;
+
+}
 
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
@@ -1061,12 +1100,12 @@ static AST *funct_declaration(Token *token_list, size_t *token_position, AST *as
 static AST *statement(Token *token_list, size_t *token_position, AST *ast) 
 {
     /* print statement rule */
-    if(token_list[*token_position].type == PRINTF) {
+    if(token_list[*token_position].type == ECHO) {
         if(next_position(token_position, token_list)) {
-            parser_error(token_list[*token_position], "Expected expression after printf!");
+            parser_error(token_list[*token_position], "Expected expression after echo!");
             return ast;
         }
-        return print_statement(token_list, token_position, ast);
+        return echo_statement(token_list, token_position, ast);
     }
 
     /* Block statement rule */
@@ -1126,6 +1165,15 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
             return ast;
         }
         return clear_statement(token_list, token_position, ast);       
+    }
+
+    /* cd statement rule */
+    if(token_list[*token_position].type == CD) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected ';'  after cd statement!");
+            return ast;
+        }
+        return cd_statement(token_list, token_position, ast);       
     }
 
     /* Regular expression statement */

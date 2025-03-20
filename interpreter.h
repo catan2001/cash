@@ -89,9 +89,13 @@ static ValueTagged *evaluate_time_statement(AST *, EnvironmentMap *);
 *Function that evaluates clear statement*/
 static ValueTagged *evaluate_clear_statement(AST *, EnvironmentMap *); 
 
-/*@Function: _printf
-*Function that evaluates result of AST printf */
-static ValueTagged * _printf(ValueTagged *);
+/*@Function: evaluate_cd_statement 
+*Function that evaluate_cd_statement clear statement*/
+static ValueTagged *evaluate_cd_statement(AST *, EnvironmentMap *); 
+
+/*@Function: echo
+*Function that evaluates result of AST echo*/
+static ValueTagged * echo(ValueTagged *);
 
 /*@Function: evaluate
 *Function that calls evaluation of specific node type */

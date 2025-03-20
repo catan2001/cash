@@ -32,9 +32,9 @@ SOFTWARE.
 
 /* Hash Map used for reserved words */
 static const ReservedWordMapType reserved_word_map[] = {
-    {"pwd",     PWD},
     {"exec",    EXEC},
     {"clear",   CLEAR},
+    {"cd",      CD},
     {"time",    TIME},
     {"if",      IF},
     {"else",    ELSE},
@@ -45,7 +45,7 @@ static const ReservedWordMapType reserved_word_map[] = {
     {"null",    NULL_TOKEN},
     {"enum",    ENUM_TOKEN},
     {"var",     VAR},
-    {"printf",  PRINTF},
+    {"echo",    ECHO},
     {"funct",   FUNCT},
     {"class",   CLASS},
     {"struct",  STRUCT},

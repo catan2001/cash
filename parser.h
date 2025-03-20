@@ -109,9 +109,13 @@ static AST *if_statement(Token *, size_t *, AST *);
 *Function that implements WHILE-STMT statement rule of grammar */
 static AST *while_statement(Token *, size_t *, AST *);
 
-/*@Function: print_statement
-*Function that implements PRINT-STMT statement rule of grammar */
-static AST *print_statement(Token *, size_t *, AST *);
+/*@Function: echo_statement
+*Function that implements ECHO-STMT statement rule of grammar */
+static AST *echo_statement(Token *, size_t *, AST *);
+
+/*@Function: cd statement 
+*Function that implements CD-STMT statement rule of grammar */
+static AST *cd_statement(Token *, size_t *, AST *);
 
 /*@Function: return_statement
 *Function that implements RET-STMT statement rule of grammar */

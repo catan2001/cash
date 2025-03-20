@@ -209,8 +209,8 @@ typedef enum value_t
     NUMBER_FLOAT,
 
     /* Commands: */
-    EXEC,   
-    PWD,    
+    EXEC, 
+    CD,
     CLEAR,  
     TIME,
 
@@ -223,8 +223,8 @@ typedef enum value_t
     WHILE,        
     NULL_TOKEN,   
     ENUM_TOKEN,   
-    VAR,          
-    PRINTF,       
+    VAR,
+    ECHO,
     FUNCT,
     STRUCT,
     CLASS,        
@@ -324,10 +324,11 @@ struct AST
         AST_IF_STMT,
     	AST_WHILE_STMT,
         AST_FOR_STMT,
-        AST_PRINT_STMT,
+        AST_ECHO_STMT,
         AST_RETURN_STMT,
         AST_TIME_STMT,
         AST_CLEAR_STMT,
+        AST_CD_STMT,
 
         AST_ASSIGN_EXPR,
         AST_LOGICAL_EXPR,
@@ -346,7 +347,8 @@ struct AST
         struct AST_IF_STMT {AST *condition; AST *true_branch; AST *else_branch;} AST_IF_STMT;
         struct AST_WHILE_STMT {AST *condition; AST *body;} AST_WHILE_STMT;
         struct AST_FOR_STMT {AST *initializer; AST *condition; AST *increment; AST *body;} AST_FOR_STMT;
-        struct AST_PRINT_STMT {AST *expr;} AST_PRINT_STMT;
+        struct AST_ECHO_STMT {AST *expr;} AST_ECHO_STMT;
+        struct AST_CD_STMT {AST *expr;} AST_CD_STMT;
         struct AST_RETURN_STMT {AST *expr;} AST_RETURN_STMT;
         struct AST_ASSIGN_EXPR {Token *token; AST *expr;} AST_ASSIGN_EXPR;
         struct AST_LOGICAL_EXPR {AST *left; Token *token; AST *right;} AST_LOGICAL_EXPR;
