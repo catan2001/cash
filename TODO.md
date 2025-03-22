@@ -135,7 +135,11 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 
 ### 20.3.2025.
 - [x] Added cd command
-- [ ] run command work in progress
+- [x] run command work in progress
+
+### 22.3.2025.
+- [x] Fixed bugs
+- [x] run command works
 
 ### NEXT TIME:
 - [ ] Fix errors, and function line numbering!
