@@ -142,6 +142,7 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] run command works
 
 ### NEXT TIME:
+- [ ] Major bug when adding new line to .cash file
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
 - [ ] Implement break and continue
