@@ -1,0 +1,22 @@
+# This is just a testing example
+
+var a = "-la";
+run ls a;
+for(var c = 0; c < 10; c = c + 1) {
+    echo c;
+    echo "\n";
+}
+
+funct open_vim_easter_egg() {
+    run vim "+h42";
+}
+
+funct lolcat() {
+    echo 5+3;
+    echo "\n";
+}
+
+open_vim_easter_egg();
+
+# uncomment to run makefile
+    #run make;

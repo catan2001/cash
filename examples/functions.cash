@@ -1,0 +1,21 @@
+# This program shows you how to use functions in cash programming language
+
+funct fun_a(a) {
+    echo a;
+    echo "\n";
+}
+
+funct fun_b() { 
+    fun_a(5);
+}
+
+# Recursion example of a function
+funct recursion(k) {
+    echo k;
+    echo "\n";
+    if(k > 0) recursion(k-1);
+}
+
+fun_b();
+
+recursion(3);

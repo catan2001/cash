@@ -1,0 +1,4 @@
+var a = 5;
+var b = 42.5;
+
+echo b+a;
