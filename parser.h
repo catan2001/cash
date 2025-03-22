@@ -117,6 +117,10 @@ static AST *echo_statement(Token *, size_t *, AST *);
 *Function that implements CD-STMT statement rule of grammar */
 static AST *cd_statement(Token *, size_t *, AST *);
 
+/*@Function: run statement 
+*Function that implements RUN-STMT statement rule of grammar */
+static AST *run_statement(Token *, size_t *, AST *);       
+
 /*@Function: return_statement
 *Function that implements RET-STMT statement rule of grammar */
 static AST *return_statement(Token *, size_t *, AST *);

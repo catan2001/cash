@@ -32,6 +32,7 @@ SOFTWARE.
 
 /* Hash Map used for reserved words */
 static const ReservedWordMapType reserved_word_map[] = {
+    {"run",     RUN},
     {"exec",    EXEC},
     {"clear",   CLEAR},
     {"cd",      CD},

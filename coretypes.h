@@ -209,6 +209,7 @@ typedef enum value_t
     NUMBER_FLOAT,
 
     /* Commands: */
+    RUN,
     EXEC, 
     CD,
     CLEAR,  
@@ -329,6 +330,7 @@ struct AST
         AST_TIME_STMT,
         AST_CLEAR_STMT,
         AST_CD_STMT,
+        AST_RUN_STMT,
 
         AST_ASSIGN_EXPR,
         AST_LOGICAL_EXPR,
@@ -349,6 +351,7 @@ struct AST
         struct AST_FOR_STMT {AST *initializer; AST *condition; AST *increment; AST *body;} AST_FOR_STMT;
         struct AST_ECHO_STMT {AST *expr;} AST_ECHO_STMT;
         struct AST_CD_STMT {AST *expr;} AST_CD_STMT;
+        struct AST_RUN_STMT {Token *program_name; AST **argument_list; size_t arg_num;} AST_RUN_STMT;
         struct AST_RETURN_STMT {AST *expr;} AST_RETURN_STMT;
         struct AST_ASSIGN_EXPR {Token *token; AST *expr;} AST_ASSIGN_EXPR;
         struct AST_LOGICAL_EXPR {AST *left; Token *token; AST *right;} AST_LOGICAL_EXPR;

@@ -1,4 +1,3 @@
-
 /*
 MIT License
 
@@ -993,6 +992,43 @@ static AST *cd_statement(Token *token_list, size_t *token_position, AST *ast)
 
 }
 
+static AST *run_statement(Token *token_list, size_t *token_position, AST *ast)
+{
+    ast = primary(token_list, token_position, ast);
+
+    if(token_list[*token_position].type == LEFT_PARENTHESIS) {
+        if(next_position(token_position, token_list)) {TODO("Add error later");}
+        AST **args = NULL;
+        AST *expr = NULL;
+        size_t stmt_num = 0;
+
+        if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
+            do {
+                args = realloc(args, sizeof(AST *) * (stmt_num + 1));
+                args[stmt_num++] = expression(token_list, token_position, expr);
+                if(stmt_num >= MAX_ARG_CNT) {TODO("Add error later!");}
+            } while(token_list[*token_position].type == COMMA && !next_position(token_position, token_list));
+            
+            if(token_list[*token_position].type != RIGHT_PARENTHESIS) {TODO("Add error");}
+        }
+        
+        if(next_position(token_position, token_list)) {TODO("Add error later");}
+
+        ast = ast_new((AST)
+            {
+                .tag = AST_CALL_EXPR,
+                .data.AST_CALL_EXPR = {
+                    ast,
+                    args,
+                    stmt_num
+                }
+            }
+        );
+    }
+    return ast;
+   
+}
+
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)
 {
     if(token_list[*token_position].type != IDENTIFIER) {
@@ -1174,6 +1210,15 @@ static AST *statement(Token *token_list, size_t *token_position, AST *ast)
             return ast;
         }
         return cd_statement(token_list, token_position, ast);       
+    }
+
+    /* run statement rule */
+    if(token_list[*token_position].type == RUN) {
+        if(next_position(token_position, token_list)) {
+            parser_error(token_list[*token_position], "Expected ';'  after run statement!");
+            return ast;
+        }
+        return run_statement(token_list, token_position, ast);       
     }
 
     /* Regular expression statement */
