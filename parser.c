@@ -162,6 +162,15 @@ extern void ast_print(AST *ast)
             ast_print(ast->data.AST_CD_STMT.expr);
             break;
         }
+        case AST_RUN_STMT:
+        {     
+            fprintf(stdout, "run statement node\n");
+            if(ast->data.AST_RUN_STMT.program_name != NULL)
+                fprintf(stdout, "Program name: %s\n", ast->data.AST_RUN_STMT.program_name->lexeme);
+            for(size_t i = 0; i < ast->data.AST_RUN_STMT.arg_num; ++i)
+                ast_print(ast->data.AST_RUN_STMT.args_list[i]);
+            break;
+        }
         case AST_ASSIGN_EXPR:
         {
             fprintf(stdout, "Assignment Expression Node: %s\n", ast->data.AST_ASSIGN_EXPR.token->lexeme);
@@ -285,6 +294,14 @@ extern void ast_free(AST *ast)
         {
             if(ast->data.AST_CD_STMT.expr != NULL)
                 ast_free(ast->data.AST_CD_STMT.expr);
+            break;
+        }
+        case AST_RUN_STMT:
+        {     
+            for(size_t i = 0; i < ast->data.AST_RUN_STMT.arg_num; ++i)
+                ast_free(ast->data.AST_RUN_STMT.args_list[i]);
+            if(ast->data.AST_RUN_STMT.args_list != NULL)
+                free(ast->data.AST_RUN_STMT.args_list);
             break;
         }
         /* AST_TIME_STMT is default deallocation */
@@ -989,44 +1006,41 @@ static AST *cd_statement(Token *token_list, size_t *token_position, AST *ast)
         panic_mode(token_list, token_position);
     }
     return ast;
-
 }
 
 static AST *run_statement(Token *token_list, size_t *token_position, AST *ast)
 {
-    ast = primary(token_list, token_position, ast);
-
-    if(token_list[*token_position].type == LEFT_PARENTHESIS) {
+    Token *program_name = NULL;
+    AST **args_list = NULL;
+    AST *expr = NULL;
+    size_t arg_num = 0;
+    
+    if(token_list[*token_position].type != SEMICOLON) {
+        program_name = &token_list[*token_position];
         if(next_position(token_position, token_list)) {TODO("Add error later");}
-        AST **args = NULL;
-        AST *expr = NULL;
-        size_t stmt_num = 0;
-
-        if(token_list[*token_position].type != RIGHT_PARENTHESIS) {
-            do {
-                args = realloc(args, sizeof(AST *) * (stmt_num + 1));
-                args[stmt_num++] = expression(token_list, token_position, expr);
-                if(stmt_num >= MAX_ARG_CNT) {TODO("Add error later!");}
-            } while(token_list[*token_position].type == COMMA && !next_position(token_position, token_list));
-            
-            if(token_list[*token_position].type != RIGHT_PARENTHESIS) {TODO("Add error");}
+        while(token_list[*token_position].type != SEMICOLON) {
+            args_list = realloc(args_list, sizeof(AST *) * (arg_num + 1));
+            args_list[arg_num++] = expression(token_list, token_position, expr);
+            if(arg_num >= MAX_ARG_CNT) {TODO("Add error later!");}
         }
-        
-        if(next_position(token_position, token_list)) {TODO("Add error later");}
-
-        ast = ast_new((AST)
-            {
-                .tag = AST_CALL_EXPR,
-                .data.AST_CALL_EXPR = {
-                    ast,
-                    args,
-                    stmt_num
-                }
-            }
-        );
     }
+    if(token_list[*token_position].type != SEMICOLON) {
+        fprintf(stderr, "Expected ';' at the end of the echo expression.\n");
+        set_error_flag();
+        panic_mode(token_list, token_position);
+    }
+
+    ast = ast_new((AST)
+        {
+            .tag = AST_RUN_STMT,
+            .data.AST_RUN_STMT = {
+                program_name,
+                args_list,
+                arg_num
+            }
+        }
+    );
     return ast;
-   
 }
 
 static AST *variable_declaration(Token *token_list, size_t *token_position, AST *ast)

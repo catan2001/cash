@@ -114,13 +114,14 @@ extern void run_file(char *file_name)
         }
         if(error_flag) break;
     }
+
     //Deallocate Heap memory 
     env_reset(&env_global);
 
     DEALLOCATE_AST_LABEL:
     for(size_t i = 0; i < number_of_statements; ++i) {
         if(ast[i] != NULL) 
-            ast_free(ast[i]);      
+            ast_free(ast[i]);
     }
     free(ast);
 
@@ -173,8 +174,8 @@ extern void run_term(void)
 
         DEALLOCATE_AST_LABEL:
         for(size_t i = 0; i < number_of_statements; ++i)
-            if(ast[i] != NULL) 
-                ast_free(ast[i]);      
+            if(ast[i] != NULL)
+                ast_free(ast[i]);
         free(ast);
 
         DEALLOCATE_CTOKENS_LABEL:

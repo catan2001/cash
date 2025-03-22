@@ -90,8 +90,12 @@ static ValueTagged *evaluate_time_statement(AST *, EnvironmentMap *);
 static ValueTagged *evaluate_clear_statement(AST *, EnvironmentMap *); 
 
 /*@Function: evaluate_cd_statement 
-*Function that evaluate_cd_statement clear statement*/
+*Function that evaluate cd statement*/
 static ValueTagged *evaluate_cd_statement(AST *, EnvironmentMap *); 
+
+/*@Function: evaluate_run_statement 
+*Function that evaluate run statement*/
+static ValueTagged *evaluate_run_statement(AST *, EnvironmentMap *); 
 
 /*@Function: echo
 *Function that evaluates result of AST echo*/

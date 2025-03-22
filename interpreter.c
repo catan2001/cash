@@ -22,9 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <setjmp.h>
 #include <string.h>
 #include <time.h>
@@ -130,7 +133,10 @@ static ValueTagged *identifier_value(AST *node, EnvironmentMap *env_host)
     ValueTagged *found = env_get_var(node->data.token, env_host);
     if(found == NULL) return NULL;
     ValueTagged *result = (ValueTagged *)malloc(sizeof(ValueTagged));
-    return (result->literal = found->literal, result->type = found->type, result);
+    result->type = found->type;
+    if(found->type == STRING) 
+        return(result->literal.char_value = strdup(found->literal.char_value), result);
+    return (result->literal = found->literal, result);
 }
 
 static Value is_truth(ValueTagged *value, TokenType type) 
@@ -471,6 +477,82 @@ static ValueTagged *evaluate_cd_statement(AST *node, EnvironmentMap *env_host)
     return NULL;
 }
 
+static ValueTagged *evaluate_run_statement(AST *node, EnvironmentMap *env_host)
+{
+    if(node->data.AST_RUN_STMT.program_name == NULL) {
+        fprintf(stdout, "Runtime warning: run command requires a program name to run!\n");
+        runtime_error_mode();
+    }
+
+    Token *program_token = node->data.AST_RUN_STMT.program_name;
+    AST **args_list = node->data.AST_RUN_STMT.args_list;
+    size_t arg_num = node->data.AST_RUN_STMT.arg_num;
+    char **argv = malloc(sizeof(char *) * (arg_num + 2));
+    
+    argv[0] = strdup(program_token->lexeme);
+    for(size_t i = 0; i < arg_num; ++i) {
+        ValueTagged *arg = evaluate(args_list[i], env_host);
+        switch(arg->type) {
+            case STRING:
+                argv[i+1] = strdup(arg->literal.char_value);
+                break;
+            case TRUE_TOKEN:
+            case FALSE_TOKEN:
+            case NUMBER_INT:
+            case NUMBER_FLOAT:
+                TODO("Finish interpreting arguments!");
+        }
+        free_value(arg);
+        argv[i+2] = NULL;
+    }
+    pid_t pid = fork();
+
+    if(pid < 0) {
+        INTERNAL_ERROR("Failed to fork a process!");
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+        if(execv(program_token->lexeme, argv) < 0) {
+            if(errno == EACCES) fprintf(stderr, "%s\n", strerror(errno));
+            if(errno == ENOENT) {
+                char *env_path = NULL;
+                errno = 0;
+                env_path = strdup(getenv("PATH"));
+                
+                for(size_t i = 0, j = 0; env_path[i] != '\0'; ++i) {
+                    if(env_path[i] == ':') {
+                        env_path[i] = '\0';
+                        char program_path[FILE_PATH_SIZE] = {0};
+                        strcat(program_path, &env_path[j]);
+                        strcat(program_path, "/");
+                        strcat(program_path, program_token->lexeme);
+                        execv(program_path, argv);
+                        env_path[i] = ':';
+                        j = i+1;
+                        if(errno != ENOENT) break;
+                    }
+                }
+                free(env_path);
+                if(errno == ENOENT) fprintf(stderr, "%s\n", strerror(errno));
+            }
+        }
+    } else {
+        int stat;
+        if(waitpid(pid, &stat, 0) == -1) {
+            INTERNAL_ERROR("waitpid failed!");
+            exit(EXIT_FAILURE);
+        }
+        if(!WIFEXITED(stat)) {
+            fprintf(stdout, "Program %s did not exit succesfully\n", program_token->lexeme, WEXITSTATUS(stat));
+        }
+    }
+    
+    for(size_t i = 0; i < arg_num + 1; ++i) {
+        free(argv[i]);
+    }
+    free(argv);
+    return NULL;
+}
+
 static ValueTagged *echo(ValueTagged *result) 
 {   
     if(error_flag) return NULL;
@@ -547,6 +629,8 @@ static ValueTagged *evaluate(AST *node, EnvironmentMap *env_host)
         return evaluate_clear_statement(node, env_host);
     case AST_CD_STMT:
         return evaluate_cd_statement(node, env_host);
+    case AST_RUN_STMT:
+        return evaluate_run_statement(node, env_host);
     default:
         break;
     }
