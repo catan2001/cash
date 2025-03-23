@@ -95,9 +95,13 @@ extern void run_file(char *file_name)
     size_t number_of_statements = 0;
 
     for(char *line = file_read_line(file); line != NULL; line = (line_number++, file_read_line(file))) {
-        if((tokens = tokenizer(pcmd, &number_of_tokens)) == NULL) continue;
+        if((tokens = tokenizer(line, &number_of_tokens)) == NULL) continue;
         if(error_flag) goto DEALLOCATE_TOKENS_LABEL;
         if((ctokens = token_classifier(tokens, ctokens, number_of_ctokens + number_of_tokens, &number_of_ctokens)) == NULL) TODO("Add error");
+        DEALLOCATE_TOKENS_LABEL:
+        for (size_t i = 0; i < number_of_tokens; ++i) {
+            free(tokens[i]);
+        }
         if(error_flag) goto DEALLOCATE_CTOKENS_LABEL;
         free(line);
     }
@@ -106,10 +110,10 @@ extern void run_file(char *file_name)
     number_of_ctokens = eof_token(&ctokens, number_of_ctokens);
     ast = parser(ctokens, &number_of_statements);
     if(ast == NULL || error_flag) goto DEALLOCATE_AST_LABEL;
-
+ 
     for(size_t i = 0; i < number_of_statements; ++i) {
         if(ast[i] != NULL) {
-            ast_print(ast[i]);
+            ast_print(ast[i]); 
             interpret(ast[i]);
         }
         if(error_flag) break;
@@ -117,26 +121,18 @@ extern void run_file(char *file_name)
 
     //Deallocate Heap memory 
     env_reset(&env_global);
-
+    
     DEALLOCATE_AST_LABEL:
     for(size_t i = 0; i < number_of_statements; ++i) {
         if(ast[i] != NULL) 
             ast_free(ast[i]);
     }
     free(ast);
-
     DEALLOCATE_CTOKENS_LABEL:
     for (size_t i = 0; ctokens[i].type != EOF_TOKEN; ++i) {
         free(ctokens[i].lexeme);
     }
     free(ctokens);
-
-    DEALLOCATE_TOKENS_LABEL:
-    for (size_t i = 0; i < number_of_tokens; ++i) {
-        free(tokens[i]);
-    }
-    free(tokens);
-
     exit(EXIT_SUCCESS); 
 }
 
@@ -168,7 +164,6 @@ extern void run_term(void)
                 ast_print(ast[i]);
                 interpret(ast[i]);
             }
-
         //Deallocate Heap memory 
         env_reset(&env_global);
 
