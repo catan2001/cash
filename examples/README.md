@@ -9,7 +9,7 @@ Each example in this folder is well-commented to help you understand how cash wo
 
 ## Example Programs
 
-### 1. Variables and Scope (`variables_scope.cash`)
+### 1. Variables and Scope (`variables.cash`)
 **Concepts Covered:**  
 - Variable declaration and assignment  
 - Block scoping  
