@@ -141,8 +141,11 @@ This is a TODO list for Cash, used to track tasks and maintain a history of code
 - [x] Fixed bugs
 - [x] run command works
 
+### 23.3.2025.
+- [x] Major bug fix when adding new line to .cash file, freeing tokens
+- [x] Added more examples
+
 ### NEXT TIME:
-- [ ] Major bug when adding new line to .cash file
 - [ ] Fix errors, and function line numbering!
 - [ ] Fix Panic mode!
 - [ ] Implement break and continue
