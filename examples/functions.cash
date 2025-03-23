@@ -1,4 +1,4 @@
-# This program shows you how to use functions in cash programming language
+# This example shows you how to use functions in cash programming language
 
 funct fun_a(a) {
     echo a;

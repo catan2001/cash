@@ -1,4 +1,16 @@
+# Example: variables - This example showcases variable declaration, scoping rules, and the echo statement for printing values.
+
 var a = 5;
 var b = 42.5;
 
 echo b+a;
+echo "\n";
+
+{
+    var a = 44;
+    echo a;
+    echo "\n";
+}
+
+echo a;
+echo "\n";
